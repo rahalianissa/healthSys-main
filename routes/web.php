@@ -15,8 +15,7 @@ use App\Http\Controllers\SpecialiteController;
 use App\Http\Controllers\DepartementController;
 use App\Http\Controllers\ComptabiliteController;
 use App\Http\Controllers\DocumentController;
-use App\Http\Controllers\MedicalRecordController;
-use App\Http\Controllers\MedicalAssistantController;
+use App\Http\Controllers\PaymentController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -79,12 +78,9 @@ Route::middleware(['auth', 'role:patient'])->prefix('patient')->name('patient.')
     Route::get('/medical-record', [ConsultationController::class, 'patientMedicalRecord'])->name('medical-record');
     Route::get('/prescriptions', [PrescriptionController::class, 'patientPrescriptions'])->name('prescriptions');
     Route::get('/invoices', [InvoiceController::class, 'patientInvoices'])->name('invoices');
-    Route::get('/assistant', [MedicalAssistantController::class, 'index'])->name('assistant');
-    Route::post('/assistant/analyze', [MedicalAssistantController::class, 'analyze'])->name('assistant.analyze');
 });
 
 // ========== ROUTES POUR LES MÉDECINS ==========
-// Routes pour les médecins
 Route::middleware(['auth', 'role:doctor,chef_medecine'])->prefix('doctor')->name('doctor.')->group(function () {
     Route::get('/dashboard', function () {
         return view('doctor.dashboard');
@@ -93,11 +89,8 @@ Route::middleware(['auth', 'role:doctor,chef_medecine'])->prefix('doctor')->name
     Route::get('/waiting-room', [WaitingRoomController::class, 'doctorIndex'])->name('waiting-room');
     Route::post('/consultation/start/{waitingRoom}', [WaitingRoomController::class, 'startConsultation'])->name('consultation.start');
     Route::get('/consultations', [ConsultationController::class, 'doctorConsultations'])->name('consultations');
-    
-    // ⬇️ استخدم هذه الأسماء ⬇️
     Route::get('/consultations/create', [ConsultationController::class, 'createConsultation'])->name('consultations.create');
     Route::post('/consultations', [ConsultationController::class, 'storeConsultation'])->name('consultations.store');
-    
     Route::get('/history', [ConsultationController::class, 'visitHistory'])->name('history');
     Route::get('/establish-document', [DocumentController::class, 'establish'])->name('establish-document');
     Route::post('/establish-document/prescription', [DocumentController::class, 'storePrescription'])->name('store-prescription');
@@ -109,6 +102,7 @@ Route::middleware(['auth', 'role:doctor,chef_medecine'])->prefix('doctor')->name
     Route::post('/notifications/mark-all', [DoctorController::class, 'markAllNotifications'])->name('notifications.mark-all');
     Route::post('/notifications/{id}/mark-read', [DoctorController::class, 'markNotificationRead'])->name('notifications.mark-read');
 });
+
 // ========== ROUTES POUR LES SECRÉTAIRES ==========
 Route::middleware(['auth', 'role:secretaire,chef_medecine'])->prefix('secretaire')->name('secretaire.')->group(function () {
     Route::get('/dashboard', function () {
@@ -149,7 +143,36 @@ Route::middleware(['auth', 'role:chef_medecine'])->prefix('admin')->name('admin.
     Route::get('/consultations/{consultation}/details', [ConsultationController::class, 'details'])->name('consultations.details');
 });
 
-// ========== ROUTES DE TEST ==========
+// ========== ROUTES POUR LES CONSULTATIONS ==========
+Route::middleware(['auth'])->group(function () {
+    Route::get('/consultations/{consultation}', [ConsultationController::class, 'show'])->name('consultations.show');
+    Route::get('/consultations/{consultation}/details', [ConsultationController::class, 'details'])->name('consultations.details');
+});
+
+// ========== ROUTES POUR LES FACTURES ==========
+Route::middleware(['auth'])->group(function () {
+    // CRUD Factures
+    Route::resource('invoices', InvoiceController::class);
+    
+    // Paiement manuel
+    Route::get('/invoices/{invoice}/pay', [InvoiceController::class, 'paymentPage'])->name('invoices.pay');
+    Route::post('/invoices/{invoice}/process-payment', [InvoiceController::class, 'processPayment'])->name('invoices.processPayment');
+    
+    // Redirection (optionnel)
+    Route::get('/payment/{invoice}/checkout', [PaymentController::class, 'checkout'])->name('payment.checkout');
+    Route::get('/payment/{invoice}/success', [PaymentController::class, 'success'])->name('payment.success');
+    Route::get('/payment/{invoice}/cancel', [PaymentController::class, 'cancel'])->name('payment.cancel');
+});
+
+// PATIENT invoices
+Route::middleware(['auth', 'role:patient'])->prefix('patient')->name('patient.')->group(function () {
+    Route::get('/invoices', [InvoiceController::class, 'patientInvoices'])->name('invoices');
+});
+
+// ========== ROUTES DE RECHERCHE ==========
+Route::get('/search', [App\Http\Controllers\SearchController::class, 'search'])->name('search')->middleware('auth');
+
+// ========== ROUTE DE TEST ==========
 Route::post('/test-upload', function(Request $request) {
     if ($request->hasFile('test_image')) {
         $path = $request->file('test_image')->store('test', 'public');
@@ -157,17 +180,3 @@ Route::post('/test-upload', function(Request $request) {
     }
     return "No file uploaded";
 })->middleware('auth');
-use App\Http\Controllers\TranslationController;
-
-// Routes de traduction
-Route::middleware(['auth'])->prefix('api')->group(function () {
-    Route::post('/translate', [TranslationController::class, 'translateText'])->name('api.translate');
-    Route::post('/translate/batch', [TranslationController::class, 'translateBatch'])->name('api.translate.batch');
-    Route::get('/translate/status', [TranslationController::class, 'status'])->name('api.translate.status');
-});
-// Routes pour les consultations (affichage)
-Route::middleware(['auth'])->group(function () {
-    Route::get('/consultations/{consultation}', [ConsultationController::class, 'show'])->name('consultations.show');
-});
-Route::get('/consultations/{consultation}/details', [ConsultationController::class, 'details'])->name('consultations.details');
-Route::get('/consultations/{consultation}/details', [ConsultationController::class, 'details'])->name('consultations.details');

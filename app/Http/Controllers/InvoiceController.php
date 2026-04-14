@@ -6,16 +6,20 @@ use App\Models\Invoice;
 use App\Models\Patient;
 use App\Models\Payment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class InvoiceController extends Controller
 {
-    
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
+    // ================= ADMIN / SECRETAIRE =================
 
     public function index()
     {
-        $invoices = Invoice::with(['patient.user', 'consultation'])
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $invoices = Invoice::with('patient.user')->latest()->get();
         return view('invoices.index', compact('invoices'));
     }
 
@@ -32,10 +36,11 @@ class InvoiceController extends Controller
             'amount' => 'required|numeric|min:0',
             'issue_date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:issue_date',
-            'description' => 'nullable|string',
         ]);
 
-        $invoiceNumber = 'INV-' . date('Ymd') . '-' . str_pad(Invoice::count() + 1, 4, '0', STR_PAD_LEFT);
+        $last = Invoice::latest()->first();
+        $nextId = $last ? $last->id + 1 : 1;
+        $invoiceNumber = 'INV-' . date('Ymd') . '-' . str_pad($nextId, 4, '0', STR_PAD_LEFT);
 
         Invoice::create([
             'invoice_number' => $invoiceNumber,
@@ -48,13 +53,12 @@ class InvoiceController extends Controller
             'description' => $request->description,
         ]);
 
-        return redirect()->route('invoices.index')
-            ->with('success', 'Facture créée avec succès');
+        return redirect()->route('invoices.index')->with('success', 'Facture créée avec succès');
     }
 
     public function show(Invoice $invoice)
     {
-        $invoice->load(['patient.user', 'consultation', 'payments']);
+        $invoice->load('patient.user', 'payments');
         return view('invoices.show', compact('invoice'));
     }
 
@@ -71,82 +75,104 @@ class InvoiceController extends Controller
             'amount' => 'required|numeric|min:0',
             'issue_date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:issue_date',
-            'status' => 'required|in:pending,paid,partially_paid,cancelled',
-            'description' => 'nullable|string',
         ]);
+
+        $paid = $invoice->paid_amount;
+        $amount = $request->amount;
+
+        if ($paid == 0) {
+            $status = 'pending';
+        } elseif ($paid >= $amount) {
+            $status = 'paid';
+        } else {
+            $status = 'partially_paid';
+        }
 
         $invoice->update([
             'patient_id' => $request->patient_id,
-            'amount' => $request->amount,
+            'amount' => $amount,
             'issue_date' => $request->issue_date,
             'due_date' => $request->due_date,
-            'status' => $request->status,
+            'status' => $status,
             'description' => $request->description,
         ]);
 
-        return redirect()->route('invoices.index')
-            ->with('success', 'Facture modifiée avec succès');
+        return redirect()->route('invoices.index')->with('success', 'Facture modifiée avec succès');
     }
 
     public function destroy(Invoice $invoice)
     {
-        if ($invoice->payments()->count() > 0) {
+        if ($invoice->payments()->exists()) {
             return back()->with('error', 'Impossible de supprimer une facture avec des paiements');
         }
-        
+
         $invoice->delete();
-        return redirect()->route('invoices.index')
-            ->with('success', 'Facture supprimée avec succès');
+        return redirect()->route('invoices.index')->with('success', 'Facture supprimée avec succès');
     }
 
-    public function addPayment(Request $request, Invoice $invoice)
+    // ================= PAIEMENTS MANUELS =================
+
+    public function paymentPage(Invoice $invoice)
     {
+        return view('invoices.pay', compact('invoice'));
+    }
+
+    public function processPayment(Request $request, Invoice $invoice)
+    {
+        $remaining = $invoice->amount - $invoice->paid_amount;
+
         $request->validate([
-            'amount' => 'required|numeric|min:0.01|max:' . ($invoice->amount - $invoice->paid_amount),
+            'amount' => "required|numeric|min:0.01|max:$remaining",
             'payment_method' => 'required|in:cash,card,check,transfer',
-            'payment_date' => 'required|date',
-            'notes' => 'nullable|string',
         ]);
 
-        $payment = Payment::create([
-            'invoice_id' => $invoice->id,
-            'amount' => $request->amount,
-            'payment_method' => $request->payment_method,
-            'payment_date' => $request->payment_date,
-            'notes' => $request->notes,
-        ]);
-
-        $newPaidAmount = $invoice->paid_amount + $request->amount;
-        
-        $status = 'partially_paid';
-        if ($newPaidAmount >= $invoice->amount) {
-            $status = 'paid';
-        }
-        
-        $invoice->update([
-            'paid_amount' => $newPaidAmount,
-            'status' => $status,
-        ]);
-
-        return redirect()->route('invoices.show', $invoice)
-            ->with('success', 'Paiement enregistré avec succès');
-    }
-    public function patientInvoices()
-    {
-        $user = auth()->user();
-        $patient = $user->patient;
-        
-        if (!$patient) {
-            $patient = Patient::create([
-                'user_id' => $user->id,
+        // Validation supplémentaire pour le paiement par carte
+        if ($request->payment_method == 'card') {
+            $request->validate([
+                'card_number' => 'required|string',
+                'exp_month' => 'required|string',
+                'exp_year' => 'required|string',
+                'cvv' => 'required|string',
+                'card_holder' => 'required|string',
             ]);
         }
-        
-        $invoices = Invoice::with(['patient.user'])
-            ->where('patient_id', $patient->id)
-            ->orderBy('created_at', 'desc')
-            ->get();
-        
+
+        DB::transaction(function () use ($request, $invoice) {
+            Payment::create([
+                'invoice_id' => $invoice->id,
+                'amount' => $request->amount,
+                'payment_method' => $request->payment_method,
+                'payment_date' => now(),
+                'notes' => $request->notes . ($request->payment_method == 'card' ? ' | Carte: ' . $request->card_holder : ''),
+                'status' => 'completed',
+            ]);
+
+            $newPaid = $invoice->paid_amount + $request->amount;
+
+            if ($newPaid >= $invoice->amount) {
+                $status = 'paid';
+            } elseif ($newPaid == 0) {
+                $status = 'pending';
+            } else {
+                $status = 'partially_paid';
+            }
+
+            $invoice->update([
+                'paid_amount' => $newPaid,
+                'status' => $status,
+            ]);
+        });
+
+        return redirect()->route('invoices.show', $invoice)
+            ->with('success', '✅ Paiement effectué avec succès');
+    }
+
+    // ================= PATIENT =================
+
+    public function patientInvoices()
+    {
+        $patient = auth()->user()->patient;
+        $invoices = Invoice::where('patient_id', $patient->id)->latest()->get();
         return view('patient.invoices', compact('invoices'));
     }
-    }
+}

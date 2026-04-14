@@ -1,69 +1,57 @@
 @extends('layouts.app')
 
 @section('title', 'Modifier la facture')
+@section('page-title', 'Modifier la facture')
 
 @section('content')
-<div class="max-w-2xl mx-auto">
-    <div class="card">
-        <div class="card-header bg-gray-50">
-            <h3 class="font-semibold text-gray-800">Modifier la facture</h3>
-            <p class="text-sm text-gray-500 mt-1">Facture #{{ $invoice->invoice_number }}</p>
-        </div>
-        <div class="card-body">
-            <form action="{{ route('invoices.update', $invoice) }}" method="POST">
-                @csrf
-                @method('PUT')
+<div class="row">
+    <div class="col-md-6 mx-auto">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-warning text-white">
+                <h5 class="mb-0"><i class="fas fa-edit me-2"></i> Modifier la facture</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ route('invoices.update', $invoice) }}" method="POST">
+                    @csrf
+                    @method('PUT')
 
-                <div class="space-y-4">
-                    <div>
-                        <label class="form-label">Patient <span class="text-red-500">*</span></label>
-                        <select name="patient_id" class="form-input" required>
+                    <div class="mb-3">
+                        <label class="form-label">Patient <span class="text-danger">*</span></label>
+                        <select name="patient_id" class="form-select" required>
                             <option value="">Sélectionner un patient</option>
                             @foreach($patients as $patient)
-                                <option value="{{ $patient->id }}" {{ $invoice->patient_id == $patient->id ? 'selected' : '' }}>
-                                    {{ $patient->user->name }} - {{ $patient->user->phone }}
-                                </option>
+                                <option value="{{ $patient->id }}" {{ $invoice->patient_id == $patient->id ? 'selected' : '' }}>{{ $patient->user->name }} - {{ $patient->user->phone }}</option>
                             @endforeach
                         </select>
                     </div>
 
-                    <div>
-                        <label class="form-label">Montant (DT) <span class="text-red-500">*</span></label>
-                        <input type="number" step="0.01" name="amount" class="form-input" value="{{ old('amount', $invoice->amount) }}" required>
+                    <div class="mb-3">
+                        <label class="form-label">Montant (DT) <span class="text-danger">*</span></label>
+                        <input type="number" step="0.01" name="amount" class="form-control" value="{{ $invoice->amount }}" required>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="form-label">Date d'émission <span class="text-red-500">*</span></label>
-                            <input type="date" name="issue_date" class="form-input" value="{{ old('issue_date', $invoice->issue_date->format('Y-m-d')) }}" required>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Date d'émission <span class="text-danger">*</span></label>
+                            <input type="date" name="issue_date" class="form-control" value="{{ $invoice->issue_date->format('Y-m-d') }}" required>
                         </div>
-                        <div>
-                            <label class="form-label">Date d'échéance <span class="text-red-500">*</span></label>
-                            <input type="date" name="due_date" class="form-input" value="{{ old('due_date', $invoice->due_date->format('Y-m-d')) }}" required>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Date d'échéance <span class="text-danger">*</span></label>
+                            <input type="date" name="due_date" class="form-control" value="{{ $invoice->due_date->format('Y-m-d') }}" required>
                         </div>
                     </div>
 
-                    <div>
-                        <label class="form-label">Statut <span class="text-red-500">*</span></label>
-                        <select name="status" class="form-input" required>
-                            <option value="pending" {{ $invoice->status == 'pending' ? 'selected' : '' }}>En attente</option>
-                            <option value="paid" {{ $invoice->status == 'paid' ? 'selected' : '' }}>Payée</option>
-                            <option value="partially_paid" {{ $invoice->status == 'partially_paid' ? 'selected' : '' }}>Partiellement payée</option>
-                            <option value="cancelled" {{ $invoice->status == 'cancelled' ? 'selected' : '' }}>Annulée</option>
-                        </select>
-                    </div>
-
-                    <div>
+                    <div class="mb-3">
                         <label class="form-label">Description</label>
-                        <textarea name="description" class="form-input" rows="3" placeholder="Description de la prestation...">{{ old('description', $invoice->description) }}</textarea>
+                        <textarea name="description" class="form-control" rows="2">{{ $invoice->description }}</textarea>
                     </div>
 
-                    <div class="flex justify-end space-x-3 pt-4">
-                        <a href="{{ route('invoices.show', $invoice) }}" class="btn-secondary">Annuler</a>
-                        <button type="submit" class="btn-primary">Mettre à jour</button>
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ route('invoices.index') }}" class="btn btn-secondary">Annuler</a>
+                        <button type="submit" class="btn btn-primary">Mettre à jour</button>
                     </div>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
     </div>
 </div>
