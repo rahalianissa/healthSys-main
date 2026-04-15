@@ -733,6 +733,28 @@
         body.dark-mode .progress-bar {
             background-color: #1a5f7a;
         }
+
+        /* Animations pour les toasts */
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
     </style>
     
     @stack('styles')
@@ -1116,6 +1138,142 @@
         }
     };
     
+    // ========== FONCTIONS D'IMPRESSION AMÉLIORÉES ==========
+
+    /**
+     * Afficher un toast de notification
+     */
+    function showToast(type, message) {
+        const existingToasts = document.querySelectorAll('.custom-toast');
+        existingToasts.forEach(toast => toast.remove());
+        
+        const toast = document.createElement('div');
+        toast.className = `custom-toast alert alert-${type}`;
+        toast.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            animation: slideInRight 0.3s ease;
+            min-width: 250px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        `;
+        
+        const icon = type === 'success' ? 'fa-check-circle' : 
+                     type === 'danger' ? 'fa-exclamation-circle' : 
+                     type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
+        
+        toast.innerHTML = `<i class="fas ${icon} me-2"></i> ${message}`;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.animation = 'slideOutRight 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    /**
+     * Imprimer une section spécifique
+     */
+    function printSection(elementId, title = 'Document') {
+        const element = document.getElementById(elementId);
+        if (!element) {
+            showToast('danger', 'Élément non trouvé');
+            return;
+        }
+        
+        const printWindow = window.open('', '_blank');
+        const content = element.cloneNode(true);
+        
+        // Supprimer les éléments non imprimables
+        content.querySelectorAll('.no-print, .btn, button, .btn-group').forEach(el => el.remove());
+        
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>${title}</title>
+                <meta charset="UTF-8">
+                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+                <style>
+                    body { padding: 20px; font-family: Arial, sans-serif; }
+                    .print-header {
+                        text-align: center;
+                        margin-bottom: 30px;
+                        padding-bottom: 20px;
+                        border-bottom: 2px solid #1a5f7a;
+                    }
+                    .print-header h1 { color: #1a5f7a; }
+                    .print-footer {
+                        text-align: center;
+                        margin-top: 30px;
+                        padding-top: 20px;
+                        border-top: 1px solid #ddd;
+                        font-size: 10px;
+                    }
+                    @media print { body { padding: 0; } }
+                </style>
+            </head>
+            <body>
+                <div class="print-header">
+                    <h1>HealthSys</h1>
+                    <p>Date: ${new Date().toLocaleDateString('fr-FR')}</p>
+                </div>
+                ${content.outerHTML}
+                <div class="print-footer">
+                    <p>© ${new Date().getFullYear()} HealthSys</p>
+                </div>
+                <script>window.print(); setTimeout(() => window.close(), 500);<\/script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+        showToast('success', 'Impression lancée');
+    }
+
+    /**
+     * Exporter en PDF
+     */
+    function exportToPDF(elementId, filename = 'document') {
+        const element = document.getElementById(elementId);
+        if (!element) {
+            showToast('danger', 'Élément non trouvé');
+            return;
+        }
+        
+        showToast('info', 'Préparation du PDF...');
+        
+        const printWindow = window.open('', '_blank');
+        const content = element.cloneNode(true);
+        content.querySelectorAll('.no-print, .btn, button, .btn-group').forEach(el => el.remove());
+        
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>${filename}</title>
+                <meta charset="UTF-8">
+                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+                <style>
+                    body { padding: 20px; font-family: Arial, sans-serif; }
+                    @media print { body { padding: 0; } }
+                </style>
+            </head>
+            <body>
+                ${content.outerHTML}
+                <script>window.print();<\/script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+        showToast('success', 'PDF prêt');
+    }
+
+    // Rendre les fonctions globales
+    window.printSection = printSection;
+    window.exportToPDF = exportToPDF;
+    window.showToast = showToast;
+
     // ========== RECHERCHE AVEC AUTOCOMPLETE ==========
     document.addEventListener('DOMContentLoaded', function() {
         const searchInput = document.getElementById('globalSearchInput');

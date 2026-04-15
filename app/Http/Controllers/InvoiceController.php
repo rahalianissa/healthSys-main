@@ -62,14 +62,30 @@ class InvoiceController extends Controller
         return view('invoices.show', compact('invoice'));
     }
 
+    /**
+     * Afficher le formulaire de modification (accessible à la secrétaire et admin)
+     */
     public function edit(Invoice $invoice)
     {
+        // Vérifier les permissions
+        if (!in_array(auth()->user()->role, ['chef_medecine', 'secretaire'])) {
+            abort(403, 'Accès non autorisé');
+        }
+        
         $patients = Patient::with('user')->get();
         return view('invoices.edit', compact('invoice', 'patients'));
     }
 
+    /**
+     * Mettre à jour la facture (accessible à la secrétaire et admin)
+     */
     public function update(Request $request, Invoice $invoice)
     {
+        // Vérifier les permissions
+        if (!in_array(auth()->user()->role, ['chef_medecine', 'secretaire'])) {
+            abort(403, 'Accès non autorisé');
+        }
+        
         $request->validate([
             'patient_id' => 'required|exists:patients,id',
             'amount' => 'required|numeric|min:0',
@@ -77,6 +93,7 @@ class InvoiceController extends Controller
             'due_date' => 'required|date|after_or_equal:issue_date',
         ]);
 
+        // Recalculer le statut en fonction du montant payé
         $paid = $invoice->paid_amount;
         $amount = $request->amount;
 
@@ -93,15 +110,21 @@ class InvoiceController extends Controller
             'amount' => $amount,
             'issue_date' => $request->issue_date,
             'due_date' => $request->due_date,
-            'status' => $status,
+            'status' => $request->status ?? $status,
             'description' => $request->description,
         ]);
 
-        return redirect()->route('invoices.index')->with('success', 'Facture modifiée avec succès');
+        return redirect()->route('invoices.show', $invoice)
+            ->with('success', 'Facture modifiée avec succès');
     }
 
     public function destroy(Invoice $invoice)
     {
+        // Vérifier les permissions
+        if (!in_array(auth()->user()->role, ['chef_medecine', 'secretaire'])) {
+            abort(403, 'Accès non autorisé');
+        }
+        
         if ($invoice->payments()->exists()) {
             return back()->with('error', 'Impossible de supprimer une facture avec des paiements');
         }
@@ -172,7 +195,34 @@ class InvoiceController extends Controller
     public function patientInvoices()
     {
         $patient = auth()->user()->patient;
+        
+        if (!$patient) {
+            return redirect()->route('dashboard')->with('error', 'Profil patient non trouvé');
+        }
+        
         $invoices = Invoice::where('patient_id', $patient->id)->latest()->get();
         return view('patient.invoices', compact('invoices'));
+    }
+    
+    // ================= IMPRESSION =================
+    
+    /**
+     * Afficher la version imprimable de la facture
+     */
+    public function printInvoice(Invoice $invoice)
+    {
+        $invoice->load(['patient.user', 'payments']);
+        return view('invoices.print', compact('invoice'));
+    }
+    
+    /**
+     * Générer un PDF de la facture (via DomPDF)
+     */
+    public function pdfInvoice(Invoice $invoice)
+    {
+        $invoice->load(['patient.user', 'payments']);
+        
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('invoices.pdf', compact('invoice'));
+        return $pdf->download('facture_' . $invoice->invoice_number . '.pdf');
     }
 }
