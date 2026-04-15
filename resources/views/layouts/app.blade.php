@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() == 'ar' ? 'rtl' : 'ltr' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -53,6 +53,26 @@
             line-height: 1.5;
         }
 
+        /* RTL Support */
+        body[dir="rtl"] {
+            text-align: right;
+        }
+        
+        body[dir="rtl"] .ms-auto {
+            margin-left: 0 !important;
+            margin-right: auto !important;
+        }
+        
+        body[dir="rtl"] .me-auto {
+            margin-right: 0 !important;
+            margin-left: auto !important;
+        }
+        
+        body[dir="rtl"] .dropdown-menu-end {
+            right: auto !important;
+            left: 0 !important;
+        }
+
         /* ========== SIDEBAR ========== */
         .layout-menu {
             position: fixed;
@@ -63,6 +83,11 @@
             z-index: 1040;
             overflow-y: auto;
             box-shadow: var(--shadow-lg);
+        }
+
+        body[dir="rtl"] .layout-menu {
+            right: 0;
+            left: auto;
         }
 
         .layout-menu::-webkit-scrollbar {
@@ -108,16 +133,34 @@
             gap: 0.75rem;
         }
 
+        body[dir="rtl"] .menu-link {
+            padding: 0.75rem 1.5rem;
+        }
+
         .menu-link:hover {
             background: rgba(255,255,255,0.1);
             color: white;
+        }
+        
+        body[dir="rtl"] .menu-link:hover {
+            padding-right: 2rem;
+            padding-left: 1.5rem;
+        }
+        
+        body[dir="ltr"] .menu-link:hover {
             padding-left: 2rem;
+            padding-right: 1.5rem;
         }
 
         .menu-link.active {
             background: var(--secondary-color);
             color: var(--primary-dark);
             border-left: 4px solid white;
+        }
+        
+        body[dir="rtl"] .menu-link.active {
+            border-left: none;
+            border-right: 4px solid white;
         }
 
         .menu-icon {
@@ -138,6 +181,11 @@
         .layout-page {
             margin-left: 280px;
             transition: var(--transition);
+        }
+        
+        body[dir="rtl"] .layout-page {
+            margin-left: 0;
+            margin-right: 280px;
         }
 
         /* ========== NAVBAR ========== */
@@ -165,6 +213,10 @@
             width: 100%;
             transition: var(--transition);
         }
+        
+        body[dir="rtl"] .search-input {
+            padding: 0.5rem 2.5rem 0.5rem 1rem;
+        }
 
         .search-input:focus {
             outline: none;
@@ -180,6 +232,11 @@
             color: var(--gray-500);
             font-size: 0.9rem;
             z-index: 1;
+        }
+        
+        body[dir="rtl"] .search-icon {
+            left: auto;
+            right: 12px;
         }
 
         .search-results {
@@ -225,6 +282,11 @@
             justify-content: center;
             margin-right: 12px;
         }
+        
+        body[dir="rtl"] .search-result-icon {
+            margin-right: 0;
+            margin-left: 12px;
+        }
 
         .search-result-icon.patient {
             background: rgba(26, 95, 122, 0.1);
@@ -256,6 +318,11 @@
             padding: 0.2rem 0.4rem;
             border-radius: 50%;
             font-weight: 600;
+        }
+        
+        body[dir="rtl"] .notification-badge {
+            right: auto;
+            left: -8px;
         }
 
         /* ========== CONTENT ========== */
@@ -309,6 +376,11 @@
             padding: 1.25rem;
             transition: var(--transition);
             border-left: 4px solid var(--primary-color);
+        }
+        
+        body[dir="rtl"] .stat-card {
+            border-left: none;
+            border-right: 4px solid var(--primary-color);
         }
 
         .stat-card:hover {
@@ -365,12 +437,20 @@
                 transform: translateX(-100%);
             }
             
+            body[dir="rtl"] .layout-menu {
+                transform: translateX(100%);
+            }
+            
             .layout-menu.open {
                 transform: translateX(0);
             }
             
             .layout-page {
                 margin-left: 0;
+            }
+            
+            body[dir="rtl"] .layout-page {
+                margin-right: 0;
             }
             
             .search-wrapper {
@@ -676,13 +756,13 @@
                     <li class="menu-item">
                         <a href="{{ url('/admin') }}" class="menu-link {{ request()->is('admin') ? 'active' : '' }}">
                             <i class="menu-icon fas fa-chart-line"></i>
-                            <span>Dashboard</span>
+                            <span>{{ __('messages.dashboard') }}</span>
                         </a>
                     </li>
                     <li class="menu-item">
                         <a href="{{ url('/admin/doctors') }}" class="menu-link">
                             <i class="menu-icon fas fa-user-md"></i>
-                            <span>Médecins</span>
+                            <span>{{ __('messages.doctors') }}</span>
                         </a>
                     </li>
                     <li class="menu-item">
@@ -694,7 +774,7 @@
                     <li class="menu-item">
                         <a href="{{ url('/secretaire/patients') }}" class="menu-link">
                             <i class="menu-icon fas fa-users"></i>
-                            <span>Patients</span>
+                            <span>{{ __('messages.patients') }}</span>
                         </a>
                     </li>
                     <li class="menu-item">
@@ -712,7 +792,7 @@
                     <li class="menu-item">
                         <a href="{{ url('/secretaire/appointments') }}" class="menu-link">
                             <i class="menu-icon fas fa-calendar-alt"></i>
-                            <span>Rendez-vous</span>
+                            <span>{{ __('messages.appointments') }}</span>
                         </a>
                     </li>
                     <li class="menu-item">
@@ -726,7 +806,7 @@
                     <li class="menu-item">
                         <a href="{{ url('/doctor/dashboard') }}" class="menu-link">
                             <i class="menu-icon fas fa-chart-line"></i>
-                            <span>Dashboard</span>
+                            <span>{{ __('messages.dashboard') }}</span>
                         </a>
                     </li>
                     <li class="menu-item">
@@ -750,7 +830,7 @@
                     <li class="menu-item">
                         <a href="{{ url('/doctor/patients') }}" class="menu-link">
                             <i class="menu-icon fas fa-user-injured"></i>
-                            <span>Mes Patients</span>
+                            <span>{{ __('messages.patients') }}</span>
                         </a>
                     </li>
                     <li class="menu-item">
@@ -764,19 +844,19 @@
                     <li class="menu-item">
                         <a href="{{ url('/secretaire/dashboard') }}" class="menu-link">
                             <i class="menu-icon fas fa-chart-line"></i>
-                            <span>Dashboard</span>
+                            <span>{{ __('messages.dashboard') }}</span>
                         </a>
                     </li>
                     <li class="menu-item">
                         <a href="{{ url('/secretaire/appointments') }}" class="menu-link">
                             <i class="menu-icon fas fa-calendar-alt"></i>
-                            <span>Rendez-vous</span>
+                            <span>{{ __('messages.appointments') }}</span>
                         </a>
                     </li>
                     <li class="menu-item">
                         <a href="{{ url('/secretaire/patients') }}" class="menu-link">
                             <i class="menu-icon fas fa-users"></i>
-                            <span>Patients</span>
+                            <span>{{ __('messages.patients') }}</span>
                         </a>
                     </li>
                     <li class="menu-item">
@@ -808,7 +888,7 @@
                     <li class="menu-item">
                         <a href="{{ url('/patient/appointments') }}" class="menu-link">
                             <i class="menu-icon fas fa-calendar-alt"></i>
-                            <span>Mes rendez-vous</span>
+                            <span>{{ __('messages.appointments') }}</span>
                         </a>
                     </li>
                     <li class="menu-item">
@@ -820,13 +900,13 @@
                     <li class="menu-item">
                         <a href="{{ url('/patient/prescriptions') }}" class="menu-link">
                             <i class="menu-icon fas fa-prescription"></i>
-                            <span>Ordonnances</span>
+                            <span>{{ __('messages.prescriptions') }}</span>
                         </a>
                     </li>
                     <li class="menu-item">
                         <a href="{{ url('/patient/invoices') }}" class="menu-link">
                             <i class="menu-icon fas fa-file-invoice-dollar"></i>
-                            <span>Factures</span>
+                            <span>{{ __('messages.invoices') }}</span>
                         </a>
                     </li>
                 @endif
@@ -837,20 +917,20 @@
                 <li class="menu-item">
                     <a href="{{ url('/profile') }}" class="menu-link">
                         <i class="menu-icon fas fa-user-circle"></i>
-                        <span>Mon Profil</span>
+                        <span>{{ __('messages.profile') }}</span>
                     </a>
                 </li>
                 <li class="menu-item">
                     <a href="{{ url('/settings') }}" class="menu-link">
                         <i class="menu-icon fas fa-cog"></i>
-                        <span>Paramètres</span>
+                        <span>{{ __('messages.settings') }}</span>
                     </a>
                 </li>
                 <li class="menu-item">
                     <a href="#" class="menu-link text-danger" 
                        onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                         <i class="menu-icon fas fa-sign-out-alt"></i>
-                        <span>Déconnexion</span>
+                        <span>{{ __('messages.logout') }}</span>
                     </a>
                     <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
                         @csrf
@@ -874,8 +954,50 @@
                         <!-- BARRE DE RECHERCHE AVEC AUTOCOMPLETE -->
                         <div class="search-wrapper">
                             <i class="fas fa-search search-icon"></i>
-                            <input type="text" id="globalSearchInput" class="search-input" placeholder="Rechercher un patient, médecin...">
+                            <input type="text" id="globalSearchInput" class="search-input" placeholder="{{ __('messages.search') }}...">
                             <div id="globalSearchResults" class="search-results"></div>
+                        </div>
+                        
+                        <!-- LANGUAGE SWITCHER -->
+                        <div class="dropdown ms-2">
+                            <button class="btn btn-outline-secondary dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown">
+                                @if(session('locale') == 'fr')
+                                    🇫🇷 FR
+                                @elseif(session('locale') == 'ar')
+                                    🇸🇦 AR
+                                @else
+                                    🇬🇧 EN
+                                @endif
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center gap-2 {{ session('locale') == 'fr' ? 'active' : '' }}" 
+                                       href="{{ url('/lang/fr') }}">
+                                        <span>🇫🇷</span> Français
+                                        @if(session('locale') == 'fr')
+                                            <i class="fas fa-check ms-auto text-success"></i>
+                                        @endif
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center gap-2 {{ session('locale') == 'ar' ? 'active' : '' }}" 
+                                       href="{{ url('/lang/ar') }}">
+                                        <span>🇸🇦</span> العربية
+                                        @if(session('locale') == 'ar')
+                                            <i class="fas fa-check ms-auto text-success"></i>
+                                        @endif
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center gap-2 {{ session('locale') == 'en' ? 'active' : '' }}" 
+                                       href="{{ url('/lang/en') }}">
+                                        <span>🇬🇧</span> English
+                                        @if(session('locale') == 'en')
+                                            <i class="fas fa-check ms-auto text-success"></i>
+                                        @endif
+                                    </a>
+                                </li>
+                            </ul>
                         </div>
                         
                         <a class="nav-link position-relative" href="#">
@@ -903,15 +1025,15 @@
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2">
                                 <li><a class="dropdown-item py-2" href="{{ url('/profile') }}">
-                                    <i class="fas fa-user-circle me-2"></i> Mon Profil
+                                    <i class="fas fa-user-circle me-2"></i> {{ __('messages.profile') }}
                                 </a></li>
                                 <li><a class="dropdown-item py-2" href="{{ url('/settings') }}">
-                                    <i class="fas fa-cog me-2"></i> Paramètres
+                                    <i class="fas fa-cog me-2"></i> {{ __('messages.settings') }}
                                 </a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <a class="dropdown-item py-2 text-danger" href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                                        <i class="fas fa-sign-out-alt me-2"></i> Déconnexion
+                                        <i class="fas fa-sign-out-alt me-2"></i> {{ __('messages.logout') }}
                                     </a>
                                 </li>
                             </ul>
@@ -937,8 +1059,8 @@
                 @endif
 
                 <div class="page-title">
-                    <h1>@yield('title', 'Dashboard')</h1>
-                    <p>@yield('page-title', 'Bienvenue sur HealthSys')</p>
+                    <h1>@yield('title', __('messages.dashboard'))</h1>
+                    <p>@yield('page-title', __('messages.welcome'))</p>
                 </div>
                 
                 @yield('content')
@@ -1002,7 +1124,6 @@
         
         if (!searchInput) return;
         
-        // Fonction pour échapper le HTML
         function escapeHtml(text) {
             if (!text) return '';
             const div = document.createElement('div');
@@ -1010,19 +1131,13 @@
             return div.innerHTML;
         }
         
-        // Fonction pour obtenir l'icône selon le type
         function getResultIcon(type) {
             switch(type) {
-                case 'patient':
-                    return '<i class="fas fa-user"></i>';
-                case 'appointment':
-                    return '<i class="fas fa-calendar-check"></i>';
-                case 'doctor':
-                    return '<i class="fas fa-user-md"></i>';
-                case 'prescription':
-                    return '<i class="fas fa-prescription"></i>';
-                default:
-                    return '<i class="fas fa-search"></i>';
+                case 'patient': return '<i class="fas fa-user"></i>';
+                case 'appointment': return '<i class="fas fa-calendar-check"></i>';
+                case 'doctor': return '<i class="fas fa-user-md"></i>';
+                case 'prescription': return '<i class="fas fa-prescription"></i>';
+                default: return '<i class="fas fa-search"></i>';
             }
         }
         
@@ -1036,7 +1151,6 @@
             }
         }
         
-        // Événement de saisie
         searchInput.addEventListener('keyup', function() {
             const query = this.value.trim();
             
@@ -1085,14 +1199,12 @@
             }, 300);
         });
         
-        // Cacher les résultats quand on clique ailleurs
         document.addEventListener('click', function(e) {
             if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
                 resultsDiv.style.display = 'none';
             }
         });
         
-        // Navigation au clavier (flèches + Entrée)
         let selectedIndex = -1;
         
         searchInput.addEventListener('keydown', function(e) {

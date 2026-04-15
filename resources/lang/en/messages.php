@@ -5,80 +5,60 @@ return [
     'dashboard' => 'Dashboard',
     'patients' => 'Patients',
     'doctors' => 'Doctors',
-    'secretaries' => 'Secretaries',
     'appointments' => 'Appointments',
-    'consultations' => 'Consultations',
     'invoices' => 'Invoices',
     'prescriptions' => 'Prescriptions',
-    'reports' => 'Reports',
+    'profile' => 'My profile',
     'settings' => 'Settings',
-    'profile' => 'My Profile',
     'logout' => 'Logout',
     'login' => 'Login',
     'register' => 'Register',
-    
-    // Roles
-    'chef_medecine' => 'Head of Medicine',
-    'doctor' => 'Doctor',
-    'secretaire' => 'Secretary',
-    'patient' => 'Patient',
     
     // Actions
     'add' => 'Add',
     'edit' => 'Edit',
     'delete' => 'Delete',
-    'view' => 'View',
     'save' => 'Save',
     'cancel' => 'Cancel',
     'search' => 'Search',
     'filter' => 'Filter',
     'export' => 'Export',
     'print' => 'Print',
-    'refresh' => 'Refresh',
+    'view' => 'View',
+    'confirm' => 'Confirm',
     
     // Messages
-    'welcome_back' => 'Welcome back, :name!',
+    'welcome' => 'Welcome',
+    'welcome_back' => 'Welcome back',
     'no_data' => 'No data available',
-    'confirm_delete' => 'Are you sure you want to delete this item?',
-    'success_created' => 'Item created successfully',
-    'success_updated' => 'Item updated successfully',
-    'success_deleted' => 'Item deleted successfully',
-    'error_occurred' => 'An error occurred',
+    'success' => 'Operation successful',
+    'error' => 'An error occurred',
+    'confirm_delete' => 'Are you sure you want to delete?',
     
-    // Statistics
-    'total_patients' => 'Total patients',
-    'total_doctors' => 'Total doctors',
-    'total_appointments' => 'Total appointments',
-    'today_appointments' => 'Today\'s appointments',
-    'pending_appointments' => 'Pending',
-    'completed_consultations' => 'Completed consultations',
-    'total_revenue' => 'Total revenue',
-    'monthly_revenue' => 'Monthly revenue',
-    
-    // Status
-    'status' => 'Status',
-    'pending' => 'Pending',
-    'confirmed' => 'Confirmed',
-    'cancelled' => 'Cancelled',
-    'completed' => 'Completed',
-    'active' => 'Active',
-    'inactive' => 'Inactive',
-    'paid' => 'Paid',
-    'unpaid' => 'Unpaid',
-    'partially_paid' => 'Partially paid',
-    
-    // Forms
+    // Formulaires
     'name' => 'Name',
     'email' => 'Email',
     'phone' => 'Phone',
     'address' => 'Address',
-    'birth_date' => 'Birth date',
     'password' => 'Password',
     'confirm_password' => 'Confirm password',
-    'remember_me' => 'Remember me',
-    'forgot_password' => 'Forgot password?',
+    'date' => 'Date',
+    'time' => 'Time',
+    'status' => 'Status',
+    'type' => 'Type',
+    'description' => 'Description',
     
-    // Days and months
+    // Statuts
+    'pending' => 'Pending',
+    'confirmed' => 'Confirmed',
+    'cancelled' => 'Cancelled',
+    'completed' => 'Completed',
+    'paid' => 'Paid',
+    'unpaid' => 'Unpaid',
+    'active' => 'Active',
+    'inactive' => 'Inactive',
+    
+    // Jours et mois
     'monday' => 'Monday',
     'tuesday' => 'Tuesday',
     'wednesday' => 'Wednesday',
@@ -86,7 +66,6 @@ return [
     'friday' => 'Friday',
     'saturday' => 'Saturday',
     'sunday' => 'Sunday',
-    
     'january' => 'January',
     'february' => 'February',
     'march' => 'March',
@@ -100,7 +79,13 @@ return [
     'november' => 'November',
     'december' => 'December',
     
+    // Page d'accueil
+    'hero_title' => 'Welcome to HealthSys',
+    'hero_subtitle' => 'Smart medical practice management system',
+    'get_started' => 'Get started',
+    
     // Footer
     'copyright' => 'All rights reserved',
-    'developed_by' => 'Developed by',
+    'terms' => 'Terms of use',
+    'privacy' => 'Privacy policy',
 ];

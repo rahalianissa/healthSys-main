@@ -3,6 +3,8 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use App\Http\Middleware\SetLocale;
+use App\Http\Middleware\RoleMiddleware;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -12,14 +14,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Alias pour les middlewares
-        $middleware->alias([
-            'role' => \App\Http\Middleware\RoleMiddleware::class,
+        // Ajouter SetLocale à TOUTES les routes web
+        $middleware->web(append: [
+            SetLocale::class,
         ]);
         
-        // Ajouter le middleware SetLocale au groupe web
-        $middleware->web(append: [
-            \App\Http\Middleware\SetLocale::class,
+        // Alias pour le middleware role
+        $middleware->alias([
+            'role' => RoleMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

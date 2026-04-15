@@ -16,25 +16,30 @@ use App\Http\Controllers\DepartementController;
 use App\Http\Controllers\ComptabiliteController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\SearchController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
+
+// ========== INCLURE LES ROUTES D'AUTHENTIFICATION ==========
+require __DIR__.'/auth.php';
 
 // ========== ROUTE POUR CHANGER LA LANGUE ==========
 Route::get('/lang/{locale}', function ($locale) {
     if (in_array($locale, ['fr', 'ar', 'en'])) {
         session(['locale' => $locale]);
+        app()->setLocale($locale);
     }
     return redirect()->back();
 })->name('lang.switch');
 
+// ========== PAGE D'ACCUEIL ==========
 Route::get('/', function () {
     return view('welcome');
 })->name('welcome');
 
-require __DIR__.'/auth.php';
-
 // ========== ROUTES POUR TOUS LES UTILISATEURS AUTHENTIFIÉS ==========
 Route::middleware(['auth'])->group(function () {
+    
     Route::get('/dashboard', function () {
         $user = auth()->user();
         
@@ -151,26 +156,24 @@ Route::middleware(['auth'])->group(function () {
 
 // ========== ROUTES POUR LES FACTURES ==========
 Route::middleware(['auth'])->group(function () {
-    // CRUD Factures
     Route::resource('invoices', InvoiceController::class);
-    
-    // Paiement manuel
     Route::get('/invoices/{invoice}/pay', [InvoiceController::class, 'paymentPage'])->name('invoices.pay');
     Route::post('/invoices/{invoice}/process-payment', [InvoiceController::class, 'processPayment'])->name('invoices.processPayment');
-    
-    // Redirection (optionnel)
     Route::get('/payment/{invoice}/checkout', [PaymentController::class, 'checkout'])->name('payment.checkout');
     Route::get('/payment/{invoice}/success', [PaymentController::class, 'success'])->name('payment.success');
     Route::get('/payment/{invoice}/cancel', [PaymentController::class, 'cancel'])->name('payment.cancel');
 });
 
-// PATIENT invoices
+// ========== ROUTES PATIENT POUR FACTURES ==========
 Route::middleware(['auth', 'role:patient'])->prefix('patient')->name('patient.')->group(function () {
     Route::get('/invoices', [InvoiceController::class, 'patientInvoices'])->name('invoices');
 });
 
 // ========== ROUTES DE RECHERCHE ==========
-Route::get('/search', [App\Http\Controllers\SearchController::class, 'search'])->name('search')->middleware('auth');
+Route::middleware(['auth'])->group(function () {
+    Route::get('/search', [SearchController::class, 'search'])->name('search');
+    Route::get('/search/autocomplete', [SearchController::class, 'autocomplete'])->name('search.autocomplete');
+});
 
 // ========== ROUTE DE TEST ==========
 Route::post('/test-upload', function(Request $request) {
@@ -180,4 +183,3 @@ Route::post('/test-upload', function(Request $request) {
     }
     return "No file uploaded";
 })->middleware('auth');
-Route::get('/search/autocomplete', [App\Http\Controllers\SearchController::class, 'autocomplete'])->name('search.autocomplete')->middleware('auth');
