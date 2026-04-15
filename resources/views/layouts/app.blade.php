@@ -150,13 +150,19 @@
             z-index: 1030;
         }
 
+        /* Style pour la barre de recherche avec autocomplete */
+        .search-wrapper {
+            position: relative;
+            width: 280px;
+        }
+
         .search-input {
             background: var(--gray-100);
             border: none;
             border-radius: 30px;
-            padding: 0.5rem 1rem;
+            padding: 0.5rem 1rem 0.5rem 2.5rem;
             font-size: 0.85rem;
-            width: 250px;
+            width: 100%;
             transition: var(--transition);
         }
 
@@ -164,6 +170,80 @@
             outline: none;
             box-shadow: 0 0 0 3px rgba(26,95,122,0.1);
             background: white;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-500);
+            font-size: 0.9rem;
+            z-index: 1;
+        }
+
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow-md);
+            margin-top: 8px;
+            z-index: 1050;
+            display: none;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .search-results .list-group-item {
+            border: none;
+            border-radius: 0;
+            padding: 12px 16px;
+            transition: var(--transition);
+        }
+
+        .search-results .list-group-item:first-child {
+            border-radius: 12px 12px 0 0;
+        }
+
+        .search-results .list-group-item:last-child {
+            border-radius: 0 0 12px 12px;
+        }
+
+        .search-results .list-group-item:hover {
+            background: var(--gray-100);
+        }
+
+        .search-result-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+        }
+
+        .search-result-icon.patient {
+            background: rgba(26, 95, 122, 0.1);
+            color: var(--primary-color);
+        }
+
+        .search-result-icon.appointment {
+            background: rgba(255, 193, 7, 0.1);
+            color: var(--warning-color);
+        }
+
+        .search-result-icon.doctor {
+            background: rgba(40, 167, 69, 0.1);
+            color: var(--success-color);
+        }
+
+        .search-result-icon.prescription {
+            background: rgba(220, 53, 69, 0.1);
+            color: var(--danger-color);
         }
 
         .notification-badge {
@@ -292,6 +372,10 @@
             .layout-page {
                 margin-left: 0;
             }
+            
+            .search-wrapper {
+                width: 200px;
+            }
         }
 
         @media (max-width: 768px) {
@@ -301,6 +385,10 @@
             
             .page-title h1 {
                 font-size: 1.3rem;
+            }
+            
+            .search-wrapper {
+                display: none;
             }
         }
 
@@ -403,6 +491,19 @@
         }
         
         body.dark-mode .list-group-item:hover {
+            background-color: #1a2a4a;
+        }
+        
+        body.dark-mode .search-results {
+            background-color: #16213e;
+            border-color: #0f3460;
+        }
+        
+        body.dark-mode .search-results .list-group-item {
+            color: #e0e0e0;
+        }
+        
+        body.dark-mode .search-results .list-group-item:hover {
             background-color: #1a2a4a;
         }
         
@@ -740,6 +841,12 @@
                     </a>
                 </li>
                 <li class="menu-item">
+                    <a href="{{ url('/settings') }}" class="menu-link">
+                        <i class="menu-icon fas fa-cog"></i>
+                        <span>Paramètres</span>
+                    </a>
+                </li>
+                <li class="menu-item">
                     <a href="#" class="menu-link text-danger" 
                        onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                         <i class="menu-icon fas fa-sign-out-alt"></i>
@@ -764,9 +871,11 @@
                     </div>
 
                     <div class="d-flex align-items-center gap-3">
-                        <div class="position-relative">
-                            <i class="fas fa-search text-muted position-absolute start-0 top-50 translate-middle-y ms-3"></i>
-                            <input type="text" class="search-input ps-5" placeholder="Rechercher...">
+                        <!-- BARRE DE RECHERCHE AVEC AUTOCOMPLETE -->
+                        <div class="search-wrapper">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" id="globalSearchInput" class="search-input" placeholder="Rechercher un patient, médecin...">
+                            <div id="globalSearchResults" class="search-results"></div>
                         </div>
                         
                         <a class="nav-link position-relative" href="#">
@@ -846,7 +955,7 @@
 <!-- JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // Mobile menu toggle
+    // ========== MOBILE MENU TOGGLE ==========
     const mobileToggle = document.getElementById('mobile-menu-toggle');
     const sidebar = document.getElementById('layout-menu');
     
@@ -856,7 +965,7 @@
         });
     }
     
-    // Animation on scroll
+    // ========== ANIMATION ON SCROLL ==========
     const animateElements = document.querySelectorAll('.stat-card, .card');
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
@@ -868,14 +977,13 @@
     
     animateElements.forEach(el => observer.observe(el));
     
-    // Appliquer le mode sombre au chargement
+    // ========== MODE SOMBRE ==========
     document.addEventListener('DOMContentLoaded', function() {
         if (localStorage.getItem('darkMode') === 'true') {
             document.body.classList.add('dark-mode');
         }
     });
     
-    // Fonction pour changer le mode sombre (accessible depuis toutes les pages)
     window.toggleDarkMode = function(enabled) {
         if (enabled) {
             document.body.classList.add('dark-mode');
@@ -885,6 +993,141 @@
             localStorage.setItem('darkMode', 'false');
         }
     };
+    
+    // ========== RECHERCHE AVEC AUTOCOMPLETE ==========
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('globalSearchInput');
+        const resultsDiv = document.getElementById('globalSearchResults');
+        let searchTimeout = null;
+        
+        if (!searchInput) return;
+        
+        // Fonction pour échapper le HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Fonction pour obtenir l'icône selon le type
+        function getResultIcon(type) {
+            switch(type) {
+                case 'patient':
+                    return '<i class="fas fa-user"></i>';
+                case 'appointment':
+                    return '<i class="fas fa-calendar-check"></i>';
+                case 'doctor':
+                    return '<i class="fas fa-user-md"></i>';
+                case 'prescription':
+                    return '<i class="fas fa-prescription"></i>';
+                default:
+                    return '<i class="fas fa-search"></i>';
+            }
+        }
+        
+        function getResultIconClass(type) {
+            switch(type) {
+                case 'patient': return 'patient';
+                case 'appointment': return 'appointment';
+                case 'doctor': return 'doctor';
+                case 'prescription': return 'prescription';
+                default: return 'patient';
+            }
+        }
+        
+        // Événement de saisie
+        searchInput.addEventListener('keyup', function() {
+            const query = this.value.trim();
+            
+            clearTimeout(searchTimeout);
+            
+            if (query.length < 2) {
+                resultsDiv.style.display = 'none';
+                return;
+            }
+            
+            searchTimeout = setTimeout(() => {
+                fetch(`/search/autocomplete?q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.length > 0) {
+                            let html = '<div class="list-group list-group-flush">';
+                            data.forEach(item => {
+                                const iconClass = getResultIconClass(item.type);
+                                const iconHtml = getResultIcon(item.type);
+                                html += `
+                                    <a href="${item.url}" class="list-group-item list-group-item-action d-flex align-items-center">
+                                        <div class="search-result-icon ${iconClass}">
+                                            ${iconHtml}
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="fw-semibold">${escapeHtml(item.label)}</div>
+                                            <small class="text-muted">${escapeHtml(item.subtitle)}</small>
+                                        </div>
+                                        <i class="fas fa-chevron-right text-muted"></i>
+                                    </a>
+                                `;
+                            });
+                            html += '</div>';
+                            resultsDiv.innerHTML = html;
+                            resultsDiv.style.display = 'block';
+                        } else {
+                            resultsDiv.innerHTML = '<div class="p-3 text-center text-muted small">Aucun résultat trouvé</div>';
+                            resultsDiv.style.display = 'block';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erreur recherche:', error);
+                        resultsDiv.innerHTML = '<div class="p-3 text-center text-danger small">Erreur de recherche</div>';
+                        resultsDiv.style.display = 'block';
+                    });
+            }, 300);
+        });
+        
+        // Cacher les résultats quand on clique ailleurs
+        document.addEventListener('click', function(e) {
+            if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+                resultsDiv.style.display = 'none';
+            }
+        });
+        
+        // Navigation au clavier (flèches + Entrée)
+        let selectedIndex = -1;
+        
+        searchInput.addEventListener('keydown', function(e) {
+            const items = resultsDiv.querySelectorAll('.list-group-item');
+            
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+                updateSelectedItem(items, selectedIndex);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                selectedIndex = Math.max(selectedIndex - 1, -1);
+                updateSelectedItem(items, selectedIndex);
+            } else if (e.key === 'Enter' && selectedIndex >= 0 && items[selectedIndex]) {
+                e.preventDefault();
+                window.location.href = items[selectedIndex].href;
+            }
+        });
+        
+        function updateSelectedItem(items, index) {
+            items.forEach((item, i) => {
+                if (i === index) {
+                    item.classList.add('active');
+                    item.style.backgroundColor = 'var(--gray-100)';
+                } else {
+                    item.classList.remove('active');
+                    item.style.backgroundColor = '';
+                }
+            });
+            
+            if (index >= 0 && items[index]) {
+                items[index].scrollIntoView({ block: 'nearest' });
+            }
+        }
+    });
 </script>
 @stack('scripts')
 </body>

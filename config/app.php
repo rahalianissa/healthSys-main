@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Laravel'),
+    'name' => env('APP_NAME', 'HealthSys'),
 
     /*
     |--------------------------------------------------------------------------
@@ -65,7 +65,7 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => 'Africa/Tunis', // Changé pour le fuseau horaire de la Tunisie
 
     /*
     |--------------------------------------------------------------------------
@@ -78,11 +78,27 @@ return [
     |
     */
 
-    'locale' => env('APP_LOCALE', 'en'),
+    'locale' => 'fr', // Changé pour Français par défaut
 
-    'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
+    'fallback_locale' => 'fr', // Fallback vers Français
 
-    'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
+    'faker_locale' => env('APP_FAKER_LOCALE', 'fr_FR'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Available Locales (Ajouté pour le multilangage)
+    |--------------------------------------------------------------------------
+    |
+    | This array defines the languages available in the application.
+    | Each locale has a name, flag emoji, and text direction (ltr/rtl).
+    |
+    */
+
+    'available_locales' => [
+        'fr' => ['name' => 'Français', 'flag' => '🇫🇷', 'dir' => 'ltr'],
+        'ar' => ['name' => 'العربية', 'flag' => '🇸🇦', 'dir' => 'rtl'],
+        'en' => ['name' => 'English', 'flag' => '🇬🇧', 'dir' => 'ltr'],
+    ],
 
     /*
     |--------------------------------------------------------------------------

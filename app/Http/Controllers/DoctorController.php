@@ -146,4 +146,46 @@ class DoctorController extends Controller
         }
         return redirect()->back()->with('success', 'Notification marquée comme lue');
     }
+    /**
+ * Afficher le dossier médical d'un patient (pour le médecin)
+ */
+public function showPatient(Patient $patient)
+{
+    // Vérifier que le patient a consulté ce médecin
+    $doctorId = auth()->user()->doctor->id;
+    $hasConsulted = $patient->consultations()
+        ->where('doctor_id', $doctorId)
+        ->exists();
+    
+    // Le chef de médecine peut voir tous les dossiers
+    if (!$hasConsulted && auth()->user()->role != 'chef_medecine') {
+        abort(403, 'Vous n\'avez pas accès au dossier de ce patient');
+    }
+    
+    $patient->load([
+        'user', 
+        'appointments' => function($q) use ($doctorId) {
+            $q->where('doctor_id', $doctorId)
+              ->orderBy('date_time', 'desc');
+        }, 
+        'consultations' => function($q) use ($doctorId) {
+            $q->where('doctor_id', $doctorId)
+              ->orderBy('consultation_date', 'desc');
+        }, 
+        'prescriptions' => function($q) {
+            $q->orderBy('created_at', 'desc');
+        }, 
+        'invoices'
+    ]);
+    
+    // Statistiques du patient
+    $stats = [
+        'total_appointments' => $patient->appointments->count(),
+        'total_consultations' => $patient->consultations->count(),
+        'total_prescriptions' => $patient->prescriptions->count(),
+        'last_visit' => $patient->consultations->first()?->consultation_date,
+    ];
+    
+    return view('doctor.patient-show', compact('patient', 'stats'));
+}
 }

@@ -180,3 +180,4 @@ Route::post('/test-upload', function(Request $request) {
     }
     return "No file uploaded";
 })->middleware('auth');
+Route::get('/search/autocomplete', [App\Http\Controllers\SearchController::class, 'autocomplete'])->name('search.autocomplete')->middleware('auth');
