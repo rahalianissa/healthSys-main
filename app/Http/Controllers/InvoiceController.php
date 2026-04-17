@@ -1,4 +1,5 @@
 <?php
+// app/Http/Controllers/InvoiceController.php
 
 namespace App\Http\Controllers;
 
@@ -38,19 +39,30 @@ class InvoiceController extends Controller
             'due_date' => 'required|date|after_or_equal:issue_date',
         ]);
 
+        $patient = Patient::with('user')->find($request->patient_id);
+        
+        // Calculate insurance breakdown
+        $breakdown = $patient->calculateInsuranceBreakdown($request->amount);
+        
         $last = Invoice::latest()->first();
         $nextId = $last ? $last->id + 1 : 1;
         $invoiceNumber = 'INV-' . date('Ymd') . '-' . str_pad($nextId, 4, '0', STR_PAD_LEFT);
 
-        Invoice::create([
+        $invoice = Invoice::create([
             'invoice_number' => $invoiceNumber,
             'patient_id' => $request->patient_id,
             'amount' => $request->amount,
+            'cnam_amount' => $breakdown['cnam'],
+            'mutuelle_amount' => $breakdown['mutuelle'],
+            'patient_amount' => $breakdown['patient'],
             'paid_amount' => 0,
             'status' => 'pending',
             'issue_date' => $request->issue_date,
             'due_date' => $request->due_date,
             'description' => $request->description,
+            'cnam_paid' => false,
+            'mutuelle_paid' => false,
+            'patient_paid' => false,
         ]);
 
         return redirect()->route('invoices.index')->with('success', 'Facture créée avec succès');
@@ -62,12 +74,8 @@ class InvoiceController extends Controller
         return view('invoices.show', compact('invoice'));
     }
 
-    /**
-     * Afficher le formulaire de modification (accessible à la secrétaire et admin)
-     */
     public function edit(Invoice $invoice)
     {
-        // Vérifier les permissions
         if (!in_array(auth()->user()->role, ['chef_medecine', 'secretaire'])) {
             abort(403, 'Accès non autorisé');
         }
@@ -76,12 +84,8 @@ class InvoiceController extends Controller
         return view('invoices.edit', compact('invoice', 'patients'));
     }
 
-    /**
-     * Mettre à jour la facture (accessible à la secrétaire et admin)
-     */
     public function update(Request $request, Invoice $invoice)
     {
-        // Vérifier les permissions
         if (!in_array(auth()->user()->role, ['chef_medecine', 'secretaire'])) {
             abort(403, 'Accès non autorisé');
         }
@@ -93,24 +97,21 @@ class InvoiceController extends Controller
             'due_date' => 'required|date|after_or_equal:issue_date',
         ]);
 
-        // Recalculer le statut en fonction du montant payé
-        $paid = $invoice->paid_amount;
-        $amount = $request->amount;
-
-        if ($paid == 0) {
-            $status = 'pending';
-        } elseif ($paid >= $amount) {
-            $status = 'paid';
-        } else {
-            $status = 'partially_paid';
+        // Recalculate insurance breakdown if amount changed
+        if ($request->amount != $invoice->amount) {
+            $patient = Patient::find($request->patient_id);
+            $breakdown = $patient->calculateInsuranceBreakdown($request->amount);
+            
+            $invoice->cnam_amount = $breakdown['cnam'];
+            $invoice->mutuelle_amount = $breakdown['mutuelle'];
+            $invoice->patient_amount = $breakdown['patient'];
         }
 
         $invoice->update([
             'patient_id' => $request->patient_id,
-            'amount' => $amount,
+            'amount' => $request->amount,
             'issue_date' => $request->issue_date,
             'due_date' => $request->due_date,
-            'status' => $request->status ?? $status,
             'description' => $request->description,
         ]);
 
@@ -120,7 +121,6 @@ class InvoiceController extends Controller
 
     public function destroy(Invoice $invoice)
     {
-        // Vérifier les permissions
         if (!in_array(auth()->user()->role, ['chef_medecine', 'secretaire'])) {
             abort(403, 'Accès non autorisé');
         }
@@ -133,7 +133,7 @@ class InvoiceController extends Controller
         return redirect()->route('invoices.index')->with('success', 'Facture supprimée avec succès');
     }
 
-    // ================= PAIEMENTS MANUELS =================
+    // ================= PAYMENTS =================
 
     public function paymentPage(Invoice $invoice)
     {
@@ -142,48 +142,38 @@ class InvoiceController extends Controller
 
     public function processPayment(Request $request, Invoice $invoice)
     {
-        $remaining = $invoice->amount - $invoice->paid_amount;
-
+        $remainingBreakdown = $invoice->remaining_breakdown;
+        
         $request->validate([
-            'amount' => "required|numeric|min:0.01|max:$remaining",
-            'payment_method' => 'required|in:cash,card,check,transfer',
+            'payment_type' => 'required|in:cnam,mutuelle,patient',
+            'amount' => "required|numeric|min:0.01|max:{$remainingBreakdown[$request->payment_type]}",
+            'payment_method' => 'required_if:payment_type,patient|in:cash,card,check,transfer',
         ]);
 
-        // Validation supplémentaire pour le paiement par carte
-        if ($request->payment_method == 'card') {
-            $request->validate([
-                'card_number' => 'required|string',
-                'exp_month' => 'required|string',
-                'exp_year' => 'required|string',
-                'cvv' => 'required|string',
-                'card_holder' => 'required|string',
-            ]);
-        }
-
         DB::transaction(function () use ($request, $invoice) {
+            // Create payment record
             Payment::create([
                 'invoice_id' => $invoice->id,
                 'amount' => $request->amount,
-                'payment_method' => $request->payment_method,
+                'payment_method' => $request->payment_method ?? 'transfer',
                 'payment_date' => now(),
-                'notes' => $request->notes . ($request->payment_method == 'card' ? ' | Carte: ' . $request->card_holder : ''),
+                'notes' => $request->notes . " | Paiement par: " . strtoupper($request->payment_type),
+                'transaction_id' => $request->transaction_id,
                 'status' => 'completed',
             ]);
 
-            $newPaid = $invoice->paid_amount + $request->amount;
-
-            if ($newPaid >= $invoice->amount) {
-                $status = 'paid';
-            } elseif ($newPaid == 0) {
-                $status = 'pending';
-            } else {
-                $status = 'partially_paid';
+            // Mark appropriate entity as paid
+            switch ($request->payment_type) {
+                case 'cnam':
+                    $invoice->markCnamPaid($request->reference_number);
+                    break;
+                case 'mutuelle':
+                    $invoice->markMutuellePaid($request->reference_number);
+                    break;
+                case 'patient':
+                    $invoice->markPatientPaid();
+                    break;
             }
-
-            $invoice->update([
-                'paid_amount' => $newPaid,
-                'status' => $status,
-            ]);
         });
 
         return redirect()->route('invoices.show', $invoice)
@@ -204,25 +194,38 @@ class InvoiceController extends Controller
         return view('patient.invoices', compact('invoices'));
     }
     
-    // ================= IMPRESSION =================
+    // ================= PRINT & PDF =================
     
-    /**
-     * Afficher la version imprimable de la facture
-     */
     public function printInvoice(Invoice $invoice)
     {
         $invoice->load(['patient.user', 'payments']);
         return view('invoices.print', compact('invoice'));
     }
     
-    /**
-     * Générer un PDF de la facture (via DomPDF)
-     */
     public function pdfInvoice(Invoice $invoice)
     {
         $invoice->load(['patient.user', 'payments']);
-        
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('invoices.pdf', compact('invoice'));
         return $pdf->download('facture_' . $invoice->invoice_number . '.pdf');
+    }
+    
+    // ================= INSURANCE CLAIMS =================
+    
+    public function cnamClaims()
+    {
+        $claims = Invoice::where('cnam_amount', '>', 0)
+            ->where('cnam_paid', false)
+            ->with('patient.user')
+            ->get();
+        return view('invoices.cnam-claims', compact('claims'));
+    }
+    
+    public function mutuelleClaims()
+    {
+        $claims = Invoice::where('mutuelle_amount', '>', 0)
+            ->where('mutuelle_paid', false)
+            ->with('patient.user')
+            ->get();
+        return view('invoices.mutuelle-claims', compact('claims'));
     }
 }

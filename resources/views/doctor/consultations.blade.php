@@ -176,7 +176,7 @@
                                         $prescription = $consultation->prescriptions->first();
                                     @endphp
                                     @if($prescription)
-                                        <a href="{{ url('/prescriptions/'.$prescription->id.'/pdf') }}" 
+                                        <a href="{{ route('prescriptions.pdf', $prescription) }}" 
                                            class="btn btn-danger btn-action" 
                                            title="Télécharger ordonnance PDF"
                                            target="_blank">
@@ -196,7 +196,6 @@
                 </table>
             </div>
             
-            <!-- Pagination (si nécessaire) -->
             @if(method_exists($consultations, 'links'))
             <div class="d-flex justify-content-center mt-4">
                 {{ $consultations->links() }}

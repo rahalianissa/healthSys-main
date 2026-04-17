@@ -6,6 +6,7 @@ use App\Models\Doctor;
 use App\Models\User;
 use App\Models\Specialite;
 use App\Models\Appointment;
+use App\Models\Patient;  // AJOUTER CETTE LIGNE
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -14,7 +15,16 @@ class DoctorController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware('role:chef_medecine')->except(['index', 'show', 'myPatients', 'notifications', 'markAllNotifications', 'markNotificationRead']);
+        // AJOUTER 'showPatient' DANS LE except
+        $this->middleware('role:chef_medecine')->except([
+            'index', 
+            'show', 
+            'myPatients', 
+            'notifications', 
+            'markAllNotifications', 
+            'markNotificationRead',
+            'showPatient'  // AJOUTER CETTE LIGNE
+        ]);
     }
 
     public function index()
@@ -146,46 +156,60 @@ class DoctorController extends Controller
         }
         return redirect()->back()->with('success', 'Notification marquée comme lue');
     }
+
     /**
- * Afficher le dossier médical d'un patient (pour le médecin)
- */
-public function showPatient(Patient $patient)
-{
-    // Vérifier que le patient a consulté ce médecin
-    $doctorId = auth()->user()->doctor->id;
-    $hasConsulted = $patient->consultations()
-        ->where('doctor_id', $doctorId)
-        ->exists();
-    
-    // Le chef de médecine peut voir tous les dossiers
-    if (!$hasConsulted && auth()->user()->role != 'chef_medecine') {
-        abort(403, 'Vous n\'avez pas accès au dossier de ce patient');
+     * Afficher le dossier médical d'un patient (pour le médecin)
+     */
+    public function showPatient(Patient $patient)
+    {
+        // Vérifier que le patient a consulté ce médecin
+        $doctorId = auth()->user()->doctor->id;
+        
+        // Vérifier si le médecin a déjà consulté ce patient
+        $hasConsulted = $patient->consultations()
+            ->where('doctor_id', $doctorId)
+            ->exists();
+        
+        // Vérifier si le médecin a des rendez-vous avec ce patient
+        $hasAppointment = $patient->appointments()
+            ->where('doctor_id', $doctorId)
+            ->exists();
+        
+        // Le chef de médecine peut voir tous les dossiers
+        if (auth()->user()->role == 'chef_medecine') {
+            $hasAccess = true;
+        } else {
+            $hasAccess = $hasConsulted || $hasAppointment;
+        }
+        
+        if (!$hasAccess) {
+            abort(403, 'Vous n\'avez pas accès au dossier de ce patient. Vous devez avoir consulté ce patient au moins une fois.');
+        }
+        
+        $patient->load([
+            'user', 
+            'appointments' => function($q) use ($doctorId) {
+                $q->where('doctor_id', $doctorId)
+                  ->orderBy('date_time', 'desc');
+            }, 
+            'consultations' => function($q) use ($doctorId) {
+                $q->where('doctor_id', $doctorId)
+                  ->orderBy('consultation_date', 'desc');
+            }, 
+            'prescriptions' => function($q) {
+                $q->orderBy('created_at', 'desc');
+            }, 
+            'invoices'
+        ]);
+        
+        // Statistiques du patient
+        $stats = [
+            'total_appointments' => $patient->appointments->count(),
+            'total_consultations' => $patient->consultations->count(),
+            'total_prescriptions' => $patient->prescriptions->count(),
+            'last_visit' => $patient->consultations->first()?->consultation_date,
+        ];
+        
+        return view('doctor.patient-show', compact('patient', 'stats'));
     }
-    
-    $patient->load([
-        'user', 
-        'appointments' => function($q) use ($doctorId) {
-            $q->where('doctor_id', $doctorId)
-              ->orderBy('date_time', 'desc');
-        }, 
-        'consultations' => function($q) use ($doctorId) {
-            $q->where('doctor_id', $doctorId)
-              ->orderBy('consultation_date', 'desc');
-        }, 
-        'prescriptions' => function($q) {
-            $q->orderBy('created_at', 'desc');
-        }, 
-        'invoices'
-    ]);
-    
-    // Statistiques du patient
-    $stats = [
-        'total_appointments' => $patient->appointments->count(),
-        'total_consultations' => $patient->consultations->count(),
-        'total_prescriptions' => $patient->prescriptions->count(),
-        'last_visit' => $patient->consultations->first()?->consultation_date,
-    ];
-    
-    return view('doctor.patient-show', compact('patient', 'stats'));
-}
 }

@@ -110,7 +110,7 @@ For normal questions:
       if (lower.includes(keyword)) {
         return {
           isEmergency: true,
-          response: "🚨 **This sounds like a medical emergency!**\n\n**Call emergency services (911/112/999) IMMEDIATELY!**\n\nDo not wait. Do not drive yourself. Get help now.\n\nI am an AI assistant and cannot provide emergency care."
+          response: "🚨 **This sounds like a medical emergency!**\n\n**Call emergency services (190) IMMEDIATELY!**\n\nDo not wait. Do not drive yourself. Get help now.\n\nI am an AI assistant and cannot provide emergency care."
         };
       }
     }

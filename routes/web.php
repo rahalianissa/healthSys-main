@@ -234,4 +234,10 @@ Route::middleware(['auth', 'role:chef_medecine'])->prefix('admin')->name('admin.
     
     // Détails consultation
     Route::get('/consultations/{consultation}/details', [ConsultationController::class, 'details'])->name('consultations.details');
+    
+    // ========== INSURANCE CLAIMS MANAGEMENT (NEW - PFE Feature) ==========
+    Route::get('/claims/cnam', [InvoiceController::class, 'cnamClaims'])->name('claims.cnam');
+    Route::get('/claims/mutuelle', [InvoiceController::class, 'mutuelleClaims'])->name('claims.mutuelle');
+    Route::post('/claims/cnam/{invoice}/process', [InvoiceController::class, 'processCnamClaim'])->name('claims.cnam.process');
+    Route::post('/claims/mutuelle/{invoice}/process', [InvoiceController::class, 'processMutuelleClaim'])->name('claims.mutuelle.process');
 });
