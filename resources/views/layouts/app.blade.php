@@ -1022,9 +1022,20 @@
                             </ul>
                         </div>
                         
-                        <a class="nav-link position-relative" href="#">
+                        @php
+                            $notificationRoute = match(auth()->user()->role) {
+                                'doctor', 'chef_medecine' => 'doctor.notifications',
+                                'secretaire' => 'secretaire.dashboard', // Create if needed
+                                'patient' => 'patient.dashboard', // Create if needed
+                                default => '#',
+                            };
+                        @endphp
+
+                        <a class="nav-link position-relative" href="{{ route($notificationRoute) }}">
                             <i class="fas fa-bell fa-lg text-muted"></i>
-                            <span class="notification-badge">3</span>
+                            @if(auth()->user()->unreadNotifications()->count() > 0)
+                                <span class="notification-badge">{{ auth()->user()->unreadNotifications()->count() }}</span>
+                            @endif
                         </a>
                         
                         <!-- User Dropdown -->

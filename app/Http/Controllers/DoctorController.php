@@ -9,6 +9,7 @@ use App\Models\Appointment;
 use App\Models\Patient;  // AJOUTER CETTE LIGNE
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use App\Notifications\SystemNotification; 
 
 class DoctorController extends Controller
 {
@@ -41,7 +42,8 @@ class DoctorController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        // 1. Validate
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users',
             'password' => 'required|min:6',
@@ -51,29 +53,39 @@ class DoctorController extends Controller
             'consultation_fee' => 'required|numeric',
         ]);
 
+        // 2. Create User
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']), // Hashed for DB
             'role' => 'doctor',
-            'phone' => $request->phone,
+            'phone' => $validated['phone'],
             'address' => $request->address,
             'birth_date' => $request->birth_date,
             'specialite_id' => $request->specialite_id,
         ]);
 
+        // 3. Create Doctor profile
         Doctor::create([
             'user_id' => $user->id,
-            'specialty' => $request->specialty,
-            'registration_number' => $request->registration_number,
-            'consultation_fee' => $request->consultation_fee,
+            'specialty' => $validated['specialty'],
+            'registration_number' => $validated['registration_number'],
+            'consultation_fee' => $validated['consultation_fee'],
             'diploma' => $request->diploma,
             'cabinet_phone' => $request->cabinet_phone,
         ]);
 
-        return redirect()->route('admin.doctors.index')->with('success', 'Médecin ajouté avec succès');
-    }
+        // 4. 🎉 Send invitation email + save to DB
+        $user->notify(new SystemNotification('doctor.invitation', [
+            'name' => $user->name,
+            'email' => $user->email,
+            'password' => $validated['password'], // Plain text for email only ✅
+        ]));
 
+        // 5. Redirect
+        return redirect()->route('admin.doctors.index')
+            ->with('success', "✅ Médecin ajouté ! Invitation envoyée à {$user->email}");
+    }
     public function edit(Doctor $doctor)
     {
         $doctor->load('user');

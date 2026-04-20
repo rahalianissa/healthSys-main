@@ -8,7 +8,7 @@
     <div class="col-md-12 mb-4">
         <div class="welcome-card text-center">
             <h2 class="mb-0">Prendre un rendez-vous</h2>
-            <p>dans un des meilleurs cabinet médical, nous avons les meilleurs médecins, avec les derniers types de technologie</p>
+            <p>Dans un des meilleurs cabinets médicaux, nous avons les meilleurs médecins avec les dernières technologies</p>
             <div class="mt-3">
                 <a href="#prendre" class="btn btn-custom-primary me-2">Prendre rendez-vous</a>
                 <a href="#annuler" class="btn btn-custom-outline">Annuler rendez-vous</a>
@@ -27,24 +27,35 @@
                 <form id="appointmentForm">
                     @csrf
                     <div class="mb-3">
-                        <label class="form-label">Médecin</label>
+                        <label class="form-label">Médecin <span class="text-danger">*</span></label>
                         <select id="doctor_id" class="form-control" required>
                             <option value="">Choisir un médecin</option>
                             @foreach($doctors as $doctor)
-                                <option value="{{ $doctor->id }}">Dr. {{ $doctor->user->name ?? 'N/A' }} - {{ $doctor->specialty ?? 'Généraliste' }}</option>
+                                <option value="{{ $doctor->id }}">
+                                    Dr. {{ $doctor->user->name ?? 'N/A' }} - {{ $doctor->specialty ?? 'Généraliste' }}
+                                </option>
                             @endforeach
                         </select>
                     </div>
+                    
                     <div class="mb-3">
-                        <label class="form-label">Date</label>
+                        <label class="form-label">Date <span class="text-danger">*</span></label>
                         <input type="date" id="date" class="form-control" min="{{ date('Y-m-d') }}" required>
                     </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Heure <span class="text-danger">*</span></label>
+                        <input type="time" id="time" class="form-control" min="08:00" max="18:00" value="09:00" required>
+                        <small class="text-muted">Disponible de 08:00 à 18:00</small>
+                    </div>
+                    
                     <div class="mb-3">
                         <label class="form-label">Motif</label>
-                        <textarea id="reason" class="form-control" rows="3"></textarea>
+                        <textarea id="reason" class="form-control" rows="3" placeholder="Décrivez brièvement la raison de votre consultation..."></textarea>
                     </div>
+                    
                     <button type="button" class="btn btn-custom w-100" id="bookBtn">
-                        Prendre rendez-vous
+                        <i class="fas fa-calendar-check me-2"></i>Prendre rendez-vous
                     </button>
                 </form>
             </div>
@@ -212,12 +223,16 @@ function loadAppointments() {
 function bookAppointment() {
     const doctor_id = document.getElementById('doctor_id').value;
     const date = document.getElementById('date').value;
+    const time = document.getElementById('time').value || '09:00';
     const reason = document.getElementById('reason').value;
     
     if(!doctor_id || !date) {
         alert('Veuillez sélectionner un médecin et une date');
         return;
     }
+    
+    // Combiner date et heure
+    const dateTime = date + ' ' + time;
     
     const btn = document.getElementById('bookBtn');
     const originalText = btn.innerHTML;
@@ -233,22 +248,35 @@ function bookAppointment() {
         },
         body: JSON.stringify({ 
             doctor_id: doctor_id, 
-            date: date, 
+            date: dateTime,
             reason: reason 
         }),
         credentials: 'same-origin'
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => { throw err; });
+        }
+        return response.json();
+    })
     .then(data => {
         btn.innerHTML = originalText;
         btn.disabled = false;
         
         if(data.success) {
-            alert('✓ Rendez-vous pris avec succès!');
+            // Obtenir le nom du médecin sélectionné
+            const doctorSelect = document.getElementById('doctor_id');
+            const doctorText = doctorSelect.options[doctorSelect.selectedIndex].text;
+            
+            // Afficher un message de succès détaillé
+            alert(`✓ Rendez-vous pris avec succès!\n\n📅 Date: ${new Date(dateTime).toLocaleDateString('fr-FR')}\n🕐 Heure: ${time}\n👨‍️ Médecin: ${doctorText}\n\n📧 Un email de confirmation vous a été envoyé.`);
+            
             // Recharger la liste
             loadAppointments();
             // Réinitialiser le formulaire
             document.getElementById('appointmentForm').reset();
+            // Réinitialiser l'heure à 09:00
+            document.getElementById('time').value = '09:00';
             // Faire défiler vers la liste
             document.getElementById('myAppointments').scrollIntoView({behavior: 'smooth'});
         } else {
@@ -259,7 +287,7 @@ function bookAppointment() {
         btn.innerHTML = originalText;
         btn.disabled = false;
         console.error('Erreur:', error);
-        alert('❌ Erreur de connexion. Veuillez réessayer.');
+        alert('❌ ' + (error.message || 'Erreur de connexion. Veuillez réessayer.'));
     });
 }
 
@@ -348,9 +376,12 @@ document.addEventListener('DOMContentLoaded', function() {
     color: white;
     border-radius: 30px;
     padding: 12px;
+    font-weight: 600;
 }
 .btn-custom:hover {
     background: #0d3b4f;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 </style>
 @endsection

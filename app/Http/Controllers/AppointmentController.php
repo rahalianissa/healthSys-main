@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Appointment;
 use App\Models\Patient;
 use App\Models\Doctor;
+use App\Notifications\SystemNotification;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class AppointmentController extends Controller
@@ -32,25 +34,80 @@ class AppointmentController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        // 1. ✅ Validate input
+        $validated = $request->validate([
             'patient_id' => 'required|exists:patients,id',
             'doctor_id' => 'required|exists:doctors,id',
             'date_time' => 'required|date|after:now',
+            'duration' => 'nullable|integer|min:15|max:120',
+            'type' => 'nullable|string|in:general,follow-up,emergency,consultation',
+            'reason' => 'nullable|string|max:500',
+            'notes' => 'nullable|string',
         ]);
 
-        Appointment::create([
-            'patient_id' => $request->patient_id,
-            'doctor_id' => $request->doctor_id,
-            'date_time' => $request->date_time,
-            'duration' => $request->duration ?? 30,
+        // 2. ✅ Create the appointment
+        $appointment = Appointment::create([
+            'patient_id' => $validated['patient_id'],
+            'doctor_id' => $validated['doctor_id'],
+            'date_time' => $validated['date_time'],
+            'duration' => $validated['duration'] ?? 30,
             'status' => 'pending',
-            'type' => $request->type ?? 'general',
-            'reason' => $request->reason,
-            'notes' => $request->notes,
+            'type' => $validated['type'] ?? 'general',
+            'reason' => $validated['reason'] ?? null,
+            'notes' => $validated['notes'] ?? null,
         ]);
 
+        // 3. ✅ Load relationships for notification data
+        $appointment->load(['patient.user', 'doctor.user']);
+        
+        $patientUser = $appointment->patient->user;
+        $doctorUser = $appointment->doctor->user;
+        $appointmentDate = Carbon::parse($validated['date_time']);
+
+        // 4. 🎉 Send notification to PATIENT
+        try {
+            if ($patientUser) {
+                $patientUser->notify(new SystemNotification('appointment.confirmation', [
+                    'name' => $patientUser->name ?? 'Patient',
+                    'email' => $patientUser->email,
+                    'date' => $appointmentDate->format('d/m/Y'),
+                    'time' => $appointmentDate->format('H:i'),
+                    'doctor' => $doctorUser?->name ?? 'Non spécifié',
+                    'id' => $appointment->id,
+                    'type' => $validated['type'] ?? 'Consultation',
+                    'reason' => $validated['reason'] ?? 'Consultation générale',
+                ]));
+            }
+        } catch (\Exception $e) {
+            Log::warning('Patient notification failed: ' . $e->getMessage(), [
+                'patient_id' => $validated['patient_id'],
+                'appointment_id' => $appointment->id
+            ]);
+        }
+
+        // 5. 🩺 Send notification to DOCTOR
+        try {
+            if ($doctorUser) {
+                $doctorUser->notify(new SystemNotification('appointment.new', [
+                    'name' => $doctorUser->name ?? 'Médecin',
+                    'patient_name' => $patientUser?->name ?? 'Patient',
+                    'date' => $appointmentDate->format('d/m/Y'),
+                    'time' => $appointmentDate->format('H:i'),
+                    'reason' => $validated['reason'] ?? 'Consultation',
+                    'type' => $validated['type'] ?? 'general',
+                    'id' => $appointment->id,
+                ]));
+            }
+        } catch (\Exception $e) {
+            Log::warning('Doctor notification failed: ' . $e->getMessage(), [
+                'doctor_id' => $validated['doctor_id'],
+                'appointment_id' => $appointment->id
+            ]);
+        }
+
+        // 6. ✅ Redirect with success message
         return redirect()->to('/secretaire/appointments')
-            ->with('success', 'Rendez-vous créé avec succès');
+            ->with('success', '✅ Rendez-vous créé ! Notifications envoyées au patient et au médecin.');
     }
 
     public function show(Appointment $appointment)
@@ -98,7 +155,8 @@ class AppointmentController extends Controller
             ->with('success', 'Rendez-vous supprimé avec succès');
     }
 
-    // Patient methods
+    // ========== MÉTHODES POUR LE PATIENT ==========
+
     public function patientIndex()
     {
         $user = auth()->user();
@@ -141,19 +199,31 @@ class AppointmentController extends Controller
         $request->validate([
             'doctor_id' => 'required|exists:doctors,id',
             'date' => 'required|date|after:now',
+            'reason' => 'nullable|string|max:500',
         ]);
 
+        // Parse date/time
         $dateTime = Carbon::parse($request->date);
+        
+        // If no time specified (only date), default to 9:00 AM
+        if ($dateTime->hour === 0 && $dateTime->minute === 0) {
+            $dateTime = $dateTime->setTime(9, 0);
+        }
 
+        // Check availability
         $exists = Appointment::where('doctor_id', $request->doctor_id)
-            ->whereDate('date_time', $dateTime)
+            ->where('date_time', $dateTime)
             ->where('status', '!=', 'cancelled')
             ->exists();
 
         if ($exists) {
-            return response()->json(['success' => false, 'message' => 'Ce créneau n\'est pas disponible']);
+            return response()->json([
+                'success' => false, 
+                'message' => 'Ce créneau n\'est pas disponible. Veuillez choisir un autre horaire.'
+            ], 409);
         }
 
+        // Create appointment
         $appointment = Appointment::create([
             'patient_id' => $patient->id,
             'doctor_id' => $request->doctor_id,
@@ -164,7 +234,52 @@ class AppointmentController extends Controller
             'duration' => 30,
         ]);
 
-        return response()->json(['success' => true, 'appointment' => $appointment]);
+        // 🎉 Load relationships
+        $appointment->load(['patient.user', 'doctor.user']);
+        
+        $patientUser = $appointment->patient->user;
+        $doctorUser = $appointment->doctor->user;
+
+        // 📧 Send notification to PATIENT
+        try {
+            if ($patientUser) {
+                $patientUser->notify(new SystemNotification('appointment.confirmation', [
+                    'name' => $patientUser->name ?? 'Patient',
+                    'email' => $patientUser->email,
+                    'date' => $dateTime->format('d/m/Y'),
+                    'time' => $dateTime->format('H:i'),
+                    'doctor' => $doctorUser?->name ?? 'Non spécifié',
+                    'id' => $appointment->id,
+                    'type' => 'Consultation',
+                    'reason' => $request->reason ?? 'Consultation générale',
+                ]));
+            }
+        } catch (\Exception $e) {
+            Log::warning('Patient notification failed: ' . $e->getMessage());
+        }
+
+        // 🩺 Send notification to DOCTOR
+        try {
+            if ($doctorUser) {
+                $doctorUser->notify(new SystemNotification('appointment.new', [
+                    'name' => $doctorUser->name ?? 'Médecin',
+                    'patient_name' => $patientUser?->name ?? 'Patient',
+                    'date' => $dateTime->format('d/m/Y'),
+                    'time' => $dateTime->format('H:i'),
+                    'reason' => $request->reason ?? 'Consultation',
+                    'type' => 'general',
+                    'id' => $appointment->id,
+                ]));
+            }
+        } catch (\Exception $e) {
+            Log::warning('Doctor notification failed: ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'success' => true, 
+            'appointment' => $appointment,
+            'message' => 'Rendez-vous créé ! Notifications envoyées.'
+        ]);
     }
 
     public function cancelOnline($id)
