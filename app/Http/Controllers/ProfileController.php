@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class ProfileController extends Controller
 {
@@ -51,24 +52,16 @@ class ProfileController extends Controller
         // ================= GESTION AVATAR =================
         if ($request->hasFile('avatar')) {
             // Supprimer l'ancien avatar s'il existe
-            if ($user->avatar) {
-                $oldPath = public_path('assets/img/avatars/' . $user->avatar);
-                if (file_exists($oldPath)) {
-                    unlink($oldPath);
-                }
+            if ($user->avatar && Storage::disk('public')->exists('avatars/' . $user->avatar)) {
+                Storage::disk('public')->delete('avatars/' . $user->avatar);
             }
             
             // Générer un nom unique pour la nouvelle image
             $file = $request->file('avatar');
             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
             
-            // Créer le dossier s'il n'existe pas
-            if (!file_exists(public_path('assets/img/avatars'))) {
-                mkdir(public_path('assets/img/avatars'), 0777, true);
-            }
-            
-            // Déplacer l'image vers le dossier
-            $file->move(public_path('assets/img/avatars'), $filename);
+            // Sauvegarder l'image dans storage/app/public/avatars
+            $path = $file->storeAs('avatars', $filename, 'public');
             
             // Sauvegarder le nom dans la base de données
             $user->avatar = $filename;
@@ -91,5 +84,19 @@ class ProfileController extends Controller
         }
 
         return redirect()->route('profile.edit')->with('success', 'Profil mis à jour avec succès');
+    }
+    public function removeAvatar()
+    {
+        $user = auth()->user();
+        
+        if ($user->avatar) {
+            if (Storage::disk('public')->exists('avatars/' . $user->avatar)) {
+                Storage::disk('public')->delete('avatars/' . $user->avatar);
+            }
+            $user->avatar = null;
+            $user->save();
+        }
+        
+        return response()->json(['success' => true]);
     }
 }

@@ -1,547 +1,541 @@
 @extends('layouts.app')
 
-@section('title', 'Mon espace patient')
-@section('page-title', 'Tableau de bord patient')
+@section('page_title', 'Mon espace santé')
+@section('page_subtitle', 'Bienvenue dans votre espace patient')
 
-@section('styles')
+@section('content')
+
 <style>
-    .stat-card {
-        transition: all 0.3s ease;
-        border: none;
-        border-radius: 20px;
-        cursor: pointer;
-        overflow: hidden;
+    :root {
+        --primary-blue: #023E8A;
+        --primary-dark: #03045E;
+        --primary-light: #0077B6;
+        --primary-lighter: #00B4D8;
+        --primary-soft: #48CAE4;
+        --primary-bg: #CAF0F8;
+        --success: #10B981;
+        --warning: #F59E0B;
+        --danger: #EF4444;
+        --info: #3B82F6;
+    }
+
+    .welcome-card {
+        background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-blue) 50%, var(--primary-light) 100%);
+        border-radius: 28px;
+        padding: 32px;
+        margin-bottom: 32px;
         position: relative;
+        overflow: hidden;
     }
-    .stat-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-    }
-    .stat-card::before {
+    
+    .welcome-card::before {
         content: '';
         position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
+        top: -40%;
+        right: -10%;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        border-radius: 50%;
     }
-    .stat-card.primary::before { background: linear-gradient(90deg, #1a5f7a, #f0b429); }
-    .stat-card.success::before { background: linear-gradient(90deg, #28a745, #20c997); }
-    .stat-card.warning::before { background: linear-gradient(90deg, #ffc107, #fd7e14); }
-    .stat-card.info::before { background: linear-gradient(90deg, #17a2b8, #6f42c1); }
+    
+    .welcome-card::after {
+        content: '';
+        position: absolute;
+        bottom: -40%;
+        left: -10%;
+        width: 250px;
+        height: 250px;
+        background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 20px;
+        padding: 20px;
+        transition: all 0.3s ease;
+        border: 1px solid #e2e8f0;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--primary-lighter);
+        box-shadow: 0 10px 25px -5px rgba(0, 119, 182, 0.1);
+    }
     
     .stat-icon {
-        width: 55px;
-        height: 55px;
-        border-radius: 15px;
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+    }
+    
+    .stat-value {
+        font-size: 32px;
+        font-weight: 800;
+        color: var(--primary-dark);
+        line-height: 1.2;
+    }
+    
+    .stat-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .appointment-card {
+        background: white;
+        border-radius: 20px;
+        transition: all 0.3s ease;
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+    }
+    
+    .appointment-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--primary-lighter);
+        box-shadow: 0 10px 25px -5px rgba(0, 119, 182, 0.1);
+    }
+    
+    .doctor-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 18px;
+        background: linear-gradient(135deg, var(--primary-light), var(--primary-lighter));
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 24px;
-    }
-    
-    .appointment-card, .consultation-card {
-        transition: all 0.3s ease;
-        border-left: 4px solid transparent;
-    }
-    .appointment-card:hover, .consultation-card:hover {
-        transform: translateX(5px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-    }
-    
-    .welcome-banner {
-        background: linear-gradient(135deg, #1a5f7a 0%, #0d3b4f 100%);
-        border-radius: 20px;
-        padding: 25px;
+        font-weight: 700;
         color: white;
-        margin-bottom: 25px;
     }
     
-    .section-title {
-        position: relative;
-        padding-bottom: 12px;
-        margin-bottom: 20px;
-    }
-    .section-title::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 50px;
-        height: 3px;
-        background: linear-gradient(90deg, #1a5f7a, #f0b429);
-        border-radius: 3px;
+    .quick-action {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px;
+        border-radius: 16px;
+        background: #f8fafc;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        margin-bottom: 12px;
     }
     
-    .btn-action {
-        border-radius: 25px;
-        padding: 10px 20px;
+    .quick-action:hover {
+        background: var(--primary-bg);
+        transform: translateX(6px);
+    }
+    
+    .quick-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, var(--primary-light), var(--primary-lighter));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 20px;
+    }
+    
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 12px;
+        border-radius: 30px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+    
+    .status-confirmed {
+        background: #ecfdf5;
+        color: #059669;
+    }
+    
+    .status-pending {
+        background: #fffbeb;
+        color: #d97706;
+    }
+    
+    .status-cancelled {
+        background: #fef2f2;
+        color: #dc2626;
+    }
+    
+    .status-completed {
+        background: #eef2ff;
+        color: #4f46e5;
+    }
+    
+    .prescription-item {
+        background: #f8fafc;
+        border-radius: 16px;
+        padding: 16px;
+        transition: all 0.3s ease;
+        border: 1px solid #e2e8f0;
+    }
+    
+    .prescription-item:hover {
+        background: white;
+        border-color: var(--primary-lighter);
+        transform: translateX(4px);
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .animate-fade-up {
+        animation: fadeInUp 0.6s ease forwards;
+    }
+    
+    .btn-primary-custom {
+        background: var(--primary-blue);
+        color: white;
         transition: all 0.3s;
     }
-    .btn-action:hover {
-        transform: scale(1.02);
+    
+    .btn-primary-custom:hover {
+        background: var(--primary-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(2, 62, 138, 0.2);
     }
 </style>
-@endsection
-
-@section('content')
-@php
-    $patient = auth()->user()->patient;
-    $patientId = $patient ? $patient->id : null;
-    $user = auth()->user();
-@endphp
 
 <!-- Welcome Banner -->
-<div class="welcome-banner">
-    <div class="d-flex justify-content-between align-items-center">
-        <div>
-            <h2 class="mb-2 fw-bold">Bonjour, {{ $user->name }} !</h2>
-            <p class="mb-0 opacity-75">Bienvenue dans votre espace santé. Voici votre activité récente.</p>
+<div class="welcome-card animate-fade-up">
+    <div class="relative z-10">
+        <div class="inline-flex items-center gap-2 bg-white/10 rounded-full px-3 py-1 mb-4">
+            <i class="fas fa-heartbeat text-cyan-300 text-xs"></i>
+            <span class="text-white/80 text-xs font-semibold tracking-wider">ESPACE PATIENT</span>
         </div>
-        <div class="text-end">
-            <i class="fas fa-heartbeat fa-3x opacity-50"></i>
-            <p class="mb-0 mt-2 small">{{ now()->format('l d F Y') }}</p>
+        <div class="flex justify-between items-center flex-wrap gap-4">
+            <div>
+                <h1 class="text-white text-2xl lg:text-3xl font-bold mb-2">
+                    Bonjour, <span class="text-cyan-300">{{ explode(' ', auth()->user()->name)[0] }}</span>
+                </h1>
+                <p class="text-white/60 text-sm">
+                    {{ now()->translatedFormat('l d F Y') }} — Suivi de votre santé
+                </p>
+            </div>
+            @if($stats['next_appointment'] ?? false)
+            <div class="bg-white/10 rounded-2xl px-6 py-3 text-center backdrop-blur-sm">
+                <div class="text-white/70 text-xs font-semibold uppercase">Prochain rendez-vous</div>
+                <div class="text-white text-lg font-bold">{{ \Carbon\Carbon::parse($stats['next_appointment']->date_time)->format('d/m/Y') }}</div>
+                <div class="text-cyan-300 text-sm font-semibold">{{ \Carbon\Carbon::parse($stats['next_appointment']->date_time)->format('H:i') }}</div>
+            </div>
+            @endif
         </div>
     </div>
 </div>
 
-<!-- Statistics Cards -->
-<div class="row g-4 mb-4">
-    <div class="col-md-3">
-        <div class="card stat-card primary shadow-sm">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <p class="text-muted text-uppercase small fw-semibold mb-1">Prochains RDV</p>
-                        <h3 class="fw-bold mb-0">
-                            @if($patientId)
-                                {{ \App\Models\Appointment::where('patient_id', $patientId)->where('status', 'confirmed')->where('date_time', '>', now())->count() }}
-                            @else
-                                0
-                            @endif
-                        </h3>
-                        <small class="text-primary mt-2 d-block">
-                            <i class="fas fa-calendar-check me-1"></i> À venir
-                        </small>
-                    </div>
-                    <div class="stat-icon bg-primary bg-opacity-10">
-                        <i class="fas fa-calendar-check text-primary"></i>
-                    </div>
-                </div>
+<!-- Statistiques Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+    
+    <div class="stat-card animate-fade-up" style="animation-delay: 0.05s">
+        <div class="flex justify-between items-start mb-3">
+            <div class="stat-icon" style="background: rgba(2, 62, 138, 0.1); color: var(--primary-blue);">
+                <i class="fas fa-calendar-check"></i>
             </div>
         </div>
+        <div class="stat-value">{{ $stats['appointments_count'] ?? 0 }}</div>
+        <div class="stat-label mt-1">Rendez-vous</div>
+        <div class="text-xs text-slate-400 mt-2">Total des consultations</div>
     </div>
     
-    <div class="col-md-3">
-        <div class="card stat-card success shadow-sm">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <p class="text-muted text-uppercase small fw-semibold mb-1">Ordonnances</p>
-                        <h3 class="fw-bold mb-0">
-                            @if($patientId)
-                                {{ \App\Models\Prescription::where('patient_id', $patientId)->count() }}
-                            @else
-                                0
-                            @endif
-                        </h3>
-                        <small class="text-success mt-2 d-block">
-                            <i class="fas fa-prescription me-1"></i> Actives
-                        </small>
-                    </div>
-                    <div class="stat-icon bg-success bg-opacity-10">
-                        <i class="fas fa-prescription text-success"></i>
-                    </div>
-                </div>
+    <div class="stat-card animate-fade-up" style="animation-delay: 0.1s">
+        <div class="flex justify-between items-start mb-3">
+            <div class="stat-icon" style="background: rgba(0, 180, 216, 0.1); color: var(--primary-lighter);">
+                <i class="fas fa-prescription"></i>
             </div>
         </div>
+        <div class="stat-value">{{ $stats['prescriptions_count'] ?? 0 }}</div>
+        <div class="stat-label mt-1">Ordonnances</div>
+        <div class="text-xs text-slate-400 mt-2">Traitements prescrits</div>
     </div>
     
-    <div class="col-md-3">
-        <div class="card stat-card warning shadow-sm">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <p class="text-muted text-uppercase small fw-semibold mb-1">Factures impayées</p>
-                        <h3 class="fw-bold mb-0">
-                            @if($patientId)
-                                {{ \App\Models\Invoice::where('patient_id', $patientId)->where('status', 'pending')->count() }}
-                            @else
-                                0
-                            @endif
-                        </h3>
-                        <small class="text-warning mt-2 d-block">
-                            <i class="fas fa-file-invoice-dollar me-1"></i> En attente
-                        </small>
-                    </div>
-                    <div class="stat-icon bg-warning bg-opacity-10">
-                        <i class="fas fa-file-invoice-dollar text-warning"></i>
-                    </div>
-                </div>
+    <div class="stat-card animate-fade-up" style="animation-delay: 0.15s">
+        <div class="flex justify-between items-start mb-3">
+            <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success);">
+                <i class="fas fa-file-invoice-dollar"></i>
             </div>
         </div>
+        <div class="stat-value">{{ $stats['invoices_count'] ?? 0 }}</div>
+        <div class="stat-label mt-1">Factures</div>
+        <div class="text-xs text-slate-400 mt-2">Historique des paiements</div>
     </div>
     
-    <div class="col-md-3">
-        <div class="card stat-card info shadow-sm">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <p class="text-muted text-uppercase small fw-semibold mb-1">Consultations</p>
-                        <h3 class="fw-bold mb-0">
-                            @if($patientId)
-                                {{ \App\Models\Consultation::where('patient_id', $patientId)->count() }}
-                            @else
-                                0
-                            @endif
-                        </h3>
-                        <small class="text-info mt-2 d-block">
-                            <i class="fas fa-stethoscope me-1"></i> Total
-                        </small>
-                    </div>
-                    <div class="stat-icon bg-info bg-opacity-10">
-                        <i class="fas fa-stethoscope text-info"></i>
-                    </div>
-                </div>
+    <div class="stat-card animate-fade-up" style="animation-delay: 0.2s">
+        <div class="flex justify-between items-start mb-3">
+            <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--danger);">
+                <i class="fas fa-clock"></i>
             </div>
         </div>
+        <div class="stat-value">{{ $stats['unpaid_invoices'] ?? 0 }}</div>
+        <div class="stat-label mt-1">À régler</div>
+        <div class="text-xs text-slate-400 mt-2">Factures impayées</div>
     </div>
 </div>
 
-<!-- Quick Actions -->
-
-<!-- Main Content Row -->
-<div class="row g-4">
-    <!-- Upcoming Appointments -->
-    <div class="col-lg-6">
-        <div class="card shadow-sm border-0 h-100">
-            <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center pt-4">
-                <h5 class="mb-0 section-title">
-                    <i class="fas fa-calendar-alt me-2 text-primary"></i>Prochains rendez-vous
-                </h5>
-                <a href="{{ route('patient.appointments') }}" class="text-decoration-none small">Voir tout →</a>
-            </div>
-            <div class="card-body pt-0">
-                @php
-                    $appointments = $patientId ? \App\Models\Appointment::with(['doctor.user'])
-                        ->where('patient_id', $patientId)
-                        ->where('date_time', '>', now())
-                        ->where('status', 'confirmed')
-                        ->orderBy('date_time')
-                        ->limit(5)
-                        ->get() : collect();
-                @endphp
-                
-                @if($appointments->count() > 0)
-                    <div class="list-group list-group-flush">
-                        @foreach($appointments as $appointment)
-                            <div class="appointment-card list-group-item px-0 py-3 border-bottom">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div class="flex-grow-1">
-                                        <div class="d-flex align-items-center mb-2">
-                                            <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-2">
-                                                <i class="fas fa-user-md text-primary"></i>
-                                            </div>
-                                            <strong class="fs-6">Dr. {{ $appointment->doctor->user->name ?? 'N/A' }}</strong>
-                                            <span class="badge bg-primary ms-2">{{ $appointment->type ?? 'Consultation' }}</span>
-                                        </div>
-                                        <div class="ms-4">
-                                            <small class="text-muted d-block mb-1">
-                                                <i class="far fa-calendar me-2"></i>{{ \Carbon\Carbon::parse($appointment->date_time)->format('d/m/Y') }}
-                                            </small>
-                                            <small class="text-muted d-block">
-                                                <i class="far fa-clock me-2"></i>{{ \Carbon\Carbon::parse($appointment->date_time)->format('H:i') }}
-                                            </small>
-                                            @if($appointment->reason)
-                                                <small class="text-muted d-block mt-2">
-                                                    <i class="fas fa-sticky-note me-2"></i>{{ Str::limit($appointment->reason, 60) }}
-                                                </small>
-                                            @endif
-                                        </div>
-                                    </div>
-                                    <div class="text-end">
-                                        <span class="badge bg-success rounded-pill mb-2">Confirmé</span>
-                                        <br>
-                                        <button class="btn btn-sm btn-outline-danger mt-2" onclick="cancelAppointment({{ $appointment->id }})">
-                                            <i class="fas fa-times"></i> Annuler
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                @else
-                    <div class="text-center py-5">
-                        <i class="far fa-calendar-times fa-4x text-muted mb-3 opacity-25"></i>
-                        <p class="text-muted mb-0">Aucun rendez-vous à venir</p>
-                        <a href="{{ route('patient.appointments') }}" class="btn btn-primary mt-3">
-                            <i class="fas fa-plus me-2"></i>Prendre un rendez-vous
-                        </a>
-                    </div>
+<!-- Actions Rapides et Prochain Rendez-vous -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    
+    <!-- Actions Rapides -->
+    <div class="lg:col-span-1">
+        <div class="bg-white rounded-2xl p-5 border border-slate-100 animate-fade-up" style="animation-delay: 0.25s">
+            <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <i class="fas fa-bolt text-primary-blue"></i>
+                Actions rapides
+            </h3>
+            
+            <a href="{{ route('patient.appointments') }}" class="quick-action">
+                <div class="quick-icon">
+                    <i class="fas fa-calendar-plus"></i>
+                </div>
+                <div>
+                    <div class="font-bold text-slate-800">Prendre rendez-vous</div>
+                    <div class="text-xs text-slate-500">Consulter un médecin</div>
+                </div>
+                <i class="fas fa-chevron-right ml-auto text-slate-400"></i>
+            </a>
+            
+            <a href="{{ route('patient.medical-record') }}" class="quick-action">
+                <div class="quick-icon" style="background: linear-gradient(135deg, #10B981, #059669);">
+                    <i class="fas fa-folder-medical"></i>
+                </div>
+                <div>
+                    <div class="font-bold text-slate-800">Mon dossier médical</div>
+                    <div class="text-xs text-slate-500">Historique et examens</div>
+                </div>
+                <i class="fas fa-chevron-right ml-auto text-slate-400"></i>
+            </a>
+            
+            <a href="{{ route('patient.prescriptions') }}" class="quick-action">
+                <div class="quick-icon" style="background: linear-gradient(135deg, #F59E0B, #D97706);">
+                    <i class="fas fa-file-prescription"></i>
+                </div>
+                <div>
+                    <div class="font-bold text-slate-800">Mes ordonnances</div>
+                    <div class="text-xs text-slate-500">Télécharger PDF</div>
+                </div>
+                <i class="fas fa-chevron-right ml-auto text-slate-400"></i>
+            </a>
+        </div>
+    </div>
+    
+    <!-- Prochain Rendez-vous -->
+    <div class="lg:col-span-2">
+        <div class="bg-white rounded-2xl p-5 border border-slate-100 animate-fade-up" style="animation-delay: 0.3s">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fas fa-calendar-alt text-primary-blue"></i>
+                    Prochains rendez-vous
+                </h3>
+                @if(($stats['appointments_count'] ?? 0) > 0)
+                <a href="{{ route('patient.appointments') }}" class="text-sm text-primary-blue hover:underline">
+                    Voir tout <i class="fas fa-arrow-right ml-1"></i>
+                </a>
                 @endif
             </div>
-        </div>
-    </div>
-
-    <!-- Recent Consultations -->
-    <div class="col-lg-6">
-        <div class="card shadow-sm border-0 h-100">
-            <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center pt-4">
-                <h5 class="mb-0 section-title">
-                    <i class="fas fa-stethoscope me-2 text-info"></i>Dernières consultations
-                </h5>
-                <a href="{{ route('patient.medical-record') }}" class="text-decoration-none small">Voir tout →</a>
-            </div>
-            <div class="card-body pt-0">
-                @php
-                    $consultations = $patientId ? \App\Models\Consultation::with(['doctor.user'])
-                        ->where('patient_id', $patientId)
-                        ->orderBy('consultation_date', 'desc')
-                        ->limit(5)
-                        ->get() : collect();
-                @endphp
-                
-                @if($consultations->count() > 0)
-                    <div class="list-group list-group-flush">
-                        @foreach($consultations as $consultation)
-                            <div class="consultation-card list-group-item px-0 py-3 border-bottom">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div class="flex-grow-1">
-                                        <div class="d-flex align-items-center mb-2">
-                                            <div class="bg-info bg-opacity-10 rounded-circle p-2 me-2">
-                                                <i class="fas fa-stethoscope text-info"></i>
-                                            </div>
-                                            <strong class="fs-6">Dr. {{ $consultation->doctor->user->name ?? 'N/A' }}</strong>
-                                            <span class="badge bg-info ms-2">{{ $consultation->consultation_date->format('d/m/Y') }}</span>
-                                        </div>
-                                        <div class="ms-4">
-                                            @if($consultation->diagnosis)
-                                                <small class="text-muted d-block mb-1">
-                                                    <i class="fas fa-diagnoses me-2"></i><strong>Diagnostic:</strong> {{ Str::limit($consultation->diagnosis, 50) }}
-                                                </small>
-                                            @endif
-                                            @if($consultation->treatment)
-                                                <small class="text-muted d-block">
-                                                    <i class="fas fa-pills me-2"></i><strong>Traitement:</strong> {{ Str::limit($consultation->treatment, 50) }}
-                                                </small>
-                                            @endif
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <a href="#" class="btn btn-sm btn-outline-info" onclick="showConsultationDetails({{ $consultation->id }})">
-                                            <i class="fas fa-eye"></i> Détails
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                @else
-                    <div class="text-center py-5">
-                        <i class="fas fa-stethoscope fa-4x text-muted mb-3 opacity-25"></i>
-                        <p class="text-muted mb-0">Aucune consultation enregistrée</p>
-                    </div>
-                @endif
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Active Treatments & Documents -->
-<div class="row g-4 mt-2">
-    <!-- Active Treatments -->
-    <div class="col-md-6">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white border-0 pt-4">
-                <h5 class="mb-0 section-title">
-                    <i class="fas fa-pills me-2 text-success"></i>Traitements en cours
-                </h5>
-            </div>
-            <div class="card-body">
-                @php
-                    $activePrescriptions = $patientId ? \App\Models\Prescription::with(['doctor.user'])
-                        ->where('patient_id', $patientId)
-                        ->where('status', 'active')
-                        ->orderBy('created_at', 'desc')
-                        ->limit(5)
-                        ->get() : collect();
-                @endphp
-                
-                @if($activePrescriptions->count() > 0)
-                    @foreach($activePrescriptions as $prescription)
-                        <div class="border-bottom pb-3 mb-3">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
+            
+            @if(isset($recentAppointments) && $recentAppointments->count() > 0)
+                @foreach($recentAppointments->take(3) as $apt)
+                <div class="appointment-card mb-3 p-4">
+                    <div class="flex items-center gap-4">
+                        <div class="doctor-avatar">
+                            {{ strtoupper(substr($apt->doctor->user->name ?? 'D', 0, 1)) }}
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex justify-between items-start">
                                 <div>
-                                    <strong class="text-success">Ordonnance du {{ $prescription->prescription_date->format('d/m/Y') }}</strong>
-                                    <br>
-                                    <small class="text-muted">Dr. {{ $prescription->doctor->user->name ?? 'N/A' }}</small>
+                                    <h4 class="font-bold text-slate-800">Dr. {{ $apt->doctor->user->name ?? 'N/A' }}</h4>
+                                    <p class="text-xs text-slate-500">{{ $apt->doctor->specialty ?? 'Généraliste' }}</p>
                                 </div>
-                                <a href="{{ route('prescriptions.pdf', $prescription) }}" class="btn btn-sm btn-danger" target="_blank">
-                                    <i class="fas fa-file-pdf"></i> PDF
-                                </a>
+                                <div class="text-right">
+                                    <div class="text-sm font-semibold text-primary-blue">{{ \Carbon\Carbon::parse($apt->date_time)->format('d/m/Y') }}</div>
+                                    <div class="text-xs text-slate-500">{{ \Carbon\Carbon::parse($apt->date_time)->format('H:i') }}</div>
+                                </div>
                             </div>
-                            <div>
+                            <div class="flex justify-between items-center mt-3">
                                 @php
-                                    $meds = is_array($prescription->medications) ? $prescription->medications : json_decode($prescription->medications, true);
+                                    $statusClass = match($apt->status) {
+                                        'confirmed' => 'status-confirmed',
+                                        'pending' => 'status-pending',
+                                        'cancelled' => 'status-cancelled',
+                                        'completed' => 'status-completed',
+                                        default => ''
+                                    };
+                                    $statusLabel = match($apt->status) {
+                                        'confirmed' => 'Confirmé',
+                                        'pending' => 'En attente',
+                                        'cancelled' => 'Annulé',
+                                        'completed' => 'Terminé',
+                                        default => $apt->status
+                                    };
                                 @endphp
-                                @if(is_array($meds))
-                                    @foreach(array_slice($meds, 0, 3) as $med)
-                                        <span class="badge bg-light text-dark me-1 mb-1">
-                                            {{ $med['name'] ?? '' }} {{ $med['dosage'] ?? '' }}
-                                        </span>
-                                    @endforeach
-                                    @if(count($meds) > 3)
-                                        <span class="badge bg-secondary">+{{ count($meds) - 3 }}</span>
-                                    @endif
+                                <span class="status-badge {{ $statusClass }}">{{ $statusLabel }}</span>
+                                @if($apt->status == 'pending' || $apt->status == 'confirmed')
+                                <a href="{{ route('patient.appointments.show', $apt->id) }}" class="text-xs text-primary-blue hover:underline">
+                                    Voir détails <i class="fas fa-eye ml-1"></i>
+                                </a>
                                 @endif
                             </div>
                         </div>
-                    @endforeach
-                    @if($activePrescriptions->count() >= 5)
-                        <div class="text-center mt-2">
-                            <a href="{{ route('patient.prescriptions') }}" class="text-decoration-none">Voir toutes mes ordonnances →</a>
-                        </div>
-                    @endif
-                @else
-                    <div class="text-center py-4">
-                        <i class="fas fa-pills fa-3x text-muted mb-3 opacity-25"></i>
-                        <p class="text-muted mb-0">Aucun traitement en cours</p>
                     </div>
-                @endif
-            </div>
-        </div>
-    </div>
-
-    <!-- Recent Documents -->
-    <div class="col-md-6">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white border-0 pt-4">
-                <h5 class="mb-0 section-title">
-                    <i class="fas fa-flask me-2 text-warning"></i>Derniers documents
-                </h5>
-            </div>
-            <div class="card-body">
-                @php
-                    $documents = $patientId ? \App\Models\Document::where('patient_id', $patientId)
-                        ->orderBy('created_at', 'desc')
-                        ->limit(5)
-                        ->get() : collect();
-                @endphp
-                
-                @if($documents->count() > 0)
-                    <div class="list-group list-group-flush">
-                        @foreach($documents as $document)
-                            <div class="list-group-item px-0 py-2 border-bottom">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <i class="fas fa-file-{{ $document->type == 'analysis' ? 'medical' : ($document->type == 'prescription' ? 'prescription' : 'alt') }} text-warning me-2"></i>
-                                        <strong>{{ $document->title }}</strong>
-                                        <br>
-                                        <small class="text-muted">{{ $document->created_at->format('d/m/Y') }}</small>
-                                    </div>
-                                    <a href="{{ url('/documents/'.$document->id.'/download') }}" class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-download"></i>
-                                    </a>
-                                </div>
-                            </div>
-                        @endforeach
+                </div>
+                @endforeach
+            @else
+                <div class="text-center py-8">
+                    <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-calendar-times text-2xl text-slate-400"></i>
                     </div>
-                @else
-                    <div class="text-center py-4">
-                        <i class="fas fa-file-alt fa-3x text-muted mb-3 opacity-25"></i>
-                        <p class="text-muted mb-0">Aucun document disponible</p>
-                    </div>
-                @endif
-            </div>
+                    <p class="text-slate-500 mb-3">Aucun rendez-vous programmé</p>
+                    <a href="{{ route('patient.appointments') }}" class="btn-primary-custom inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold">
+                        <i class="fas fa-plus-circle"></i>
+                        Prendre rendez-vous
+                    </a>
+                </div>
+            @endif
         </div>
     </div>
 </div>
 
-<!-- Health Tips -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card bg-info bg-opacity-10 border-0">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="flex-shrink-0">
-                        <i class="fas fa-lightbulb fa-2x text-info"></i>
+<!-- Dernières ordonnances et Conseils santé -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    
+    <!-- Dernières ordonnances -->
+    <div class="bg-white rounded-2xl p-5 border border-slate-100 animate-fade-up" style="animation-delay: 0.35s">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <i class="fas fa-prescription text-primary-blue"></i>
+                Dernières ordonnances
+            </h3>
+            @if(($stats['prescriptions_count'] ?? 0) > 0)
+            <a href="{{ route('patient.prescriptions') }}" class="text-sm text-primary-blue hover:underline">
+                Voir tout <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+            @endif
+        </div>
+        
+        @if(isset($recentPrescriptions) && $recentPrescriptions->count() > 0)
+            @foreach($recentPrescriptions->take(3) as $prescription)
+            <div class="prescription-item mb-3">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-file-prescription text-primary-blue"></i>
+                            <span class="font-semibold text-slate-700">Ordonnance</span>
+                        </div>
+                        <div class="text-xs text-slate-500 mt-1">
+                            Dr. {{ $prescription->doctor->user->name ?? 'N/A' }} • {{ $prescription->created_at->format('d/m/Y') }}
+                        </div>
+                        @php
+                            $meds = is_array($prescription->medications) ? $prescription->medications : json_decode($prescription->medications ?? '[]', true);
+                        @endphp
+                        @if(is_array($meds) && count($meds) > 0)
+                        <div class="flex flex-wrap gap-1 mt-2">
+                            @foreach(array_slice($meds, 0, 2) as $med)
+                                <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{{ $med['name'] ?? 'Médicament' }}</span>
+                            @endforeach
+                            @if(count($meds) > 2)
+                                <span class="text-xs text-slate-400">+{{ count($meds) - 2 }}</span>
+                            @endif
+                        </div>
+                        @endif
                     </div>
-                    <div class="flex-grow-1 ms-3">
-                        <h6 class="mb-1">Conseil santé du jour</h6>
-                        <p class="mb-0 small text-muted">Prenez soin de votre santé en adoptant une alimentation équilibrée et une activité physique régulière. N'oubliez pas vos rendez-vous médicaux !</p>
-                    </div>
+                    <a href="{{ route('prescriptions.pdf', $prescription) }}" class="text-xs text-red-500 hover:text-red-600" target="_blank">
+                        <i class="fas fa-file-pdf text-lg"></i>
+                    </a>
+                </div>
+            </div>
+            @endforeach
+        @else
+            <div class="text-center py-8">
+                <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-prescription text-2xl text-slate-400"></i>
+                </div>
+                <p class="text-slate-500">Aucune ordonnance disponible</p>
+            </div>
+        @endif
+    </div>
+    
+    <!-- Conseils santé -->
+    <div class="bg-white rounded-2xl p-5 border border-slate-100 animate-fade-up" style="animation-delay: 0.4s">
+        <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <i class="fas fa-lightbulb text-warning"></i>
+            Conseils santé
+        </h3>
+        
+        <div class="space-y-4">
+            <div class="flex gap-3 p-3 bg-primary-bg/30 rounded-xl">
+                <div class="w-10 h-10 rounded-full bg-primary-bg flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-apple-alt text-primary-blue"></i>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-slate-700">Alimentation équilibrée</h4>
+                    <p class="text-xs text-slate-500">Une alimentation saine est essentielle pour maintenir une bonne santé.</p>
+                </div>
+            </div>
+            
+            <div class="flex gap-3 p-3 bg-primary-bg/30 rounded-xl">
+                <div class="w-10 h-10 rounded-full bg-primary-bg flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-walking text-primary-blue"></i>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-slate-700">Activité physique</h4>
+                    <p class="text-xs text-slate-500">30 minutes d'exercice par jour améliorent votre santé cardiovasculaire.</p>
+                </div>
+            </div>
+            
+            <div class="flex gap-3 p-3 bg-primary-bg/30 rounded-xl">
+                <div class="w-10 h-10 rounded-full bg-primary-bg flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-bed text-primary-blue"></i>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-slate-700">Sommeil réparateur</h4>
+                    <p class="text-xs text-slate-500">Dormez 7 à 8 heures par nuit pour une meilleure récupération.</p>
+                </div>
+            </div>
+            
+            <div class="flex gap-3 p-3 bg-primary-bg/30 rounded-xl">
+                <div class="w-10 h-10 rounded-full bg-primary-bg flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-tint text-primary-blue"></i>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-slate-700">Hydratation</h4>
+                    <p class="text-xs text-slate-500">Buvez au moins 1.5 L d'eau par jour pour rester hydraté.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-4 pt-3 border-t border-slate-100">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-phone-alt text-primary-blue text-sm"></i>
+                    <span class="text-xs text-slate-500">Urgence médicale: <strong class="text-primary-blue">190</strong></span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-ambulance text-primary-blue text-sm"></i>
+                    <span class="text-xs text-slate-500">SAMU: <strong class="text-primary-blue">15</strong></span>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
 @endsection
-
-@push('scripts')
-<script>
-function cancelAppointment(id) {
-    if(confirm('Annuler ce rendez-vous ?')) {
-        fetch(`/patient/appointments/cancel/${id}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            }
-        }).then(response => response.json()).then(data => {
-            if(data.success) {
-                location.reload();
-            } else {
-                alert('Erreur lors de l\'annulation');
-            }
-        });
-    }
-}
-
-function showConsultationDetails(id) {
-    fetch(`/consultations/${id}/details`)
-        .then(response => response.json())
-        .then(data => {
-            let html = `
-                <div class="modal fade" id="consultationModal" tabindex="-1">
-                    <div class="modal-dialog modal-lg">
-                        <div class="modal-content">
-                            <div class="modal-header bg-info text-white">
-                                <h5 class="modal-title">Détails de la consultation</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <p><strong>Date:</strong> ${data.consultation_date}</p>
-                                        <p><strong>Médecin:</strong> Dr. ${data.doctor.user.name}</p>
-                                        <p><strong>Spécialité:</strong> ${data.doctor.specialty}</p>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <p><strong>Poids:</strong> ${data.weight ? data.weight + ' kg' : 'N/A'}</p>
-                                        <p><strong>Taille:</strong> ${data.height ? data.height + ' cm' : 'N/A'}</p>
-                                        <p><strong>Tension:</strong> ${data.blood_pressure || 'N/A'}</p>
-                                    </div>
-                                </div>
-                                <hr>
-                                <h6>Symptômes:</h6>
-                                <p>${data.symptoms || 'Non renseignés'}</p>
-                                <h6>Diagnostic:</h6>
-                                <p>${data.diagnosis || 'Non renseigné'}</p>
-                                <h6>Traitement:</h6>
-                                <p>${data.treatment || 'Non renseigné'}</p>
-                                <h6>Notes:</h6>
-                                <p>${data.notes || 'Non renseignées'}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.insertAdjacentHTML('beforeend', html);
-            new bootstrap.Modal(document.getElementById('consultationModal')).show();
-            document.getElementById('consultationModal').addEventListener('hidden.bs.modal', function() {
-                document.getElementById('consultationModal').remove();
-            });
-        });
-}
-</script>
-@endpush

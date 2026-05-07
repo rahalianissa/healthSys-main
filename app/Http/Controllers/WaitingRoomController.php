@@ -15,6 +15,33 @@ class WaitingRoomController extends Controller
         $this->middleware('auth');
     }
 
+    // Pour la secrétaire
+    public function secretaireIndex()
+    {
+        $waiting = WaitingRoom::with(['patient.user', 'doctor.user'])
+            ->where('status', 'waiting')
+            ->orderBy('priority', 'desc')
+            ->orderBy('arrival_time', 'asc')
+            ->get();
+
+        // إضافة هذا المتغير ✅
+        $inConsultation = WaitingRoom::with(['patient.user', 'doctor.user'])
+            ->where('status', 'in_consultation')
+            ->first();
+
+        $doctors = Doctor::with('user')->get();
+        $patients = Patient::with('user')->get();
+        
+        // جلب rendez-vous pour les associer (اختياري)
+        $appointments = Appointment::with(['patient.user', 'doctor.user'])
+            ->where('status', 'confirmed')
+            ->where('date_time', '>', now())
+            ->orderBy('date_time', 'asc')
+            ->get();
+
+        return view('secretaire.waiting-room', compact('waiting', 'doctors', 'patients', 'inConsultation', 'appointments'));
+    }
+
     // Pour le médecin
     public function doctorIndex()
     {
@@ -35,22 +62,7 @@ class WaitingRoomController extends Controller
         return view('doctor.waiting-room', compact('waiting', 'inConsultation'));
     }
 
-    // Pour la secrétaire
-    public function secretaireIndex()
-    {
-        $waiting = WaitingRoom::with(['patient.user', 'doctor.user'])
-            ->where('status', 'waiting')
-            ->orderBy('priority', 'desc')
-            ->orderBy('arrival_time', 'asc')
-            ->get();
-
-        $doctors = Doctor::with('user')->get();
-        $patients = Patient::with('user')->get();
-
-        return view('secretaire.waiting-room', compact('waiting', 'doctors', 'patients'));
-    }
-
-    // Ajouter un patient à la salle d'attente (secrétaire)
+    // Ajouter un patient (secrétaire)
     public function add(Request $request)
     {
         $request->validate([
@@ -64,7 +76,7 @@ class WaitingRoomController extends Controller
             ->first();
 
         if ($existing) {
-            return back()->with('error', 'Patient déjà en salle d\'attente');
+            return redirect()->back()->with('error', 'Patient déjà en salle d\'attente');
         }
 
         WaitingRoom::create([
@@ -76,8 +88,7 @@ class WaitingRoomController extends Controller
             'status' => 'waiting',
         ]);
 
-        // Correction : utiliser redirect()->to()
-        return redirect()->to('/secretaire/waiting-room')
+        return redirect()->route('secretaire.waiting-room')
             ->with('success', 'Patient ajouté à la salle d\'attente');
     }
 
@@ -89,9 +100,11 @@ class WaitingRoomController extends Controller
             'start_time' => now(),
         ]);
 
-        // Correction : utiliser redirect()->to()
-        return redirect()->to('/doctor/waiting-room')
-            ->with('success', 'Consultation démarrée');
+        return redirect()->route('doctor.consultations.create', [
+            'patient' => $waitingRoom->patient_id,
+            'appointment' => $waitingRoom->appointment_id ?? 0,
+            'waiting_id' => $waitingRoom->id
+        ])->with('success', 'Consultation démarrée');
     }
 
     // Terminer consultation (médecin)
@@ -109,18 +122,16 @@ class WaitingRoomController extends Controller
             }
         }
 
-        // Correction : utiliser redirect()->to()
-        return redirect()->to('/doctor/waiting-room')
+        return redirect()->route('doctor.waiting-room')
             ->with('success', 'Consultation terminée');
     }
 
-    // Retirer un patient de la salle d'attente (secrétaire)
+    // Retirer un patient (secrétaire)
     public function remove(WaitingRoom $waitingRoom)
     {
         $waitingRoom->delete();
         
-        // Correction : utiliser redirect()->to()
-        return redirect()->to('/secretaire/waiting-room')
+        return redirect()->route('secretaire.waiting-room')
             ->with('success', 'Patient retiré de la salle d\'attente');
     }
 }

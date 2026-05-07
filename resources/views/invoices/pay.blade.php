@@ -1,420 +1,459 @@
 @extends('layouts.app')
 
-@section('title', 'Paiement sécurisé')
-@section('page-title', 'Paiement de la facture')
+@section('page_title', 'Paiement de la facture')
+@section('page_subtitle', 'Facture N° ' . $invoice->invoice_number)
 
-@section('styles')
+@section('content')
+
 <style>
     .payment-card {
         background: white;
-        border-radius: 20px;
+        border-radius: 24px;
         overflow: hidden;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e2e8f0;
     }
-    .card-header-custom {
-        background: linear-gradient(135deg, #1a5f7a 0%, #0d3b4f 100%);
-        padding: 25px;
+    
+    .payment-header {
+        background: linear-gradient(135deg, #023E8A 0%, #0077B6 100%);
+        padding: 24px;
         color: white;
     }
-    .card-number-input {
-        font-size: 18px;
-        letter-spacing: 2px;
-        font-family: monospace;
+    
+    .amount-box {
+        background: #f8fafc;
+        border-radius: 16px;
+        padding: 20px;
+        text-align: center;
+        border: 1px solid #e2e8f0;
     }
-    .card-icon {
-        position: absolute;
-        right: 15px;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: 30px;
-    }
-    .payment-method-box {
+    
+    .payment-method {
         cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 16px;
+        text-align: center;
+        background: white;
+        user-select: none;
+    }
+    
+    .payment-method:hover {
+        border-color: #00B4D8;
+        transform: translateY(-2px);
+    }
+    
+    .payment-method.active {
+        border-color: #10B981;
+        background: #ecfdf5;
+    }
+    
+    .btn-pay {
+        background: linear-gradient(135deg, #10B981, #059669);
+        border: none;
+        padding: 16px;
+        font-size: 16px;
+        font-weight: 700;
+        border-radius: 16px;
         transition: all 0.3s;
-        border: 2px solid #e0e0e0;
-        border-radius: 12px;
-        padding: 15px;
+        color: white;
+        width: 100%;
+        cursor: pointer;
+        display: block;
         text-align: center;
     }
-    .payment-method-box:hover {
-        border-color: #1a5f7a;
-        transform: translateY(-3px);
-    }
-    .payment-method-box.active {
-        border-color: #28a745;
-        background: #e8f5e9;
-    }
-    .card-preview {
-        background: linear-gradient(135deg, #2c3e50, #1a1a2e);
-        border-radius: 15px;
-        padding: 20px;
-        color: white;
-        margin-bottom: 20px;
-        position: relative;
-        min-height: 200px;
-    }
-    .card-preview .card-number {
-        font-size: 20px;
-        letter-spacing: 3px;
-        font-family: monospace;
-        margin-top: 30px;
-    }
-    .card-preview .card-holder {
-        margin-top: 20px;
-        text-transform: uppercase;
-    }
-    .card-preview .card-expiry {
-        margin-top: 20px;
-    }
-    .card-chip {
-        position: absolute;
-        top: 20px;
-        left: 20px;
-        width: 40px;
-    }
-    .card-brand {
-        position: absolute;
-        bottom: 20px;
-        right: 20px;
-        font-size: 40px;
-    }
-    .btn-pay {
-        background: linear-gradient(135deg, #28a745, #1e7e34);
-        border: none;
-        padding: 15px;
-        font-size: 18px;
-        font-weight: bold;
-        border-radius: 50px;
-        transition: all 0.3s;
-    }
+    
     .btn-pay:hover {
         transform: translateY(-2px);
-        box-shadow: 0 5px 20px rgba(40,167,69,0.4);
+        box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.4);
     }
-    .secure-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        background: #f8f9fa;
-        padding: 8px 15px;
-        border-radius: 50px;
-        font-size: 12px;
+    
+    .btn-pay:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    .type-option {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 16px;
+        background: white;
+    }
+    
+    .type-option:hover {
+        border-color: #00B4D8;
+        background: #f8fafc;
+    }
+    
+    .type-option.active {
+        border-color: #10B981;
+        background: #ecfdf5;
+    }
+    
+    .payment-method-icon {
+        font-size: 24px;
+        margin-bottom: 8px;
     }
 </style>
-@endsection
 
-@section('content')
-<div class="row">
-    <div class="col-lg-8 mx-auto">
-        <div class="payment-card">
-            <div class="card-header-custom">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h4 class="mb-0"><i class="fas fa-credit-card me-2"></i> Paiement sécurisé</h4>
-                        <small class="opacity-75">Facture #{{ $invoice->invoice_number }}</small>
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+        
+        <!-- En-tête -->
+        <div class="mb-6">
+            @php
+                $showRoute = auth()->user()->role === 'patient' ? route('patient.invoices.show', $invoice) : route('invoices.show', $invoice);
+            @endphp
+            <a href="{{ $showRoute }}" class="text-blue-600 hover:underline inline-flex items-center gap-2 mb-4">
+                <i class="fas fa-arrow-left"></i> Retour à la facture
+            </a>
+        </div>
+        
+        <div class="grid md:grid-cols-2 gap-8">
+            
+            <!-- Informations facture -->
+            <div>
+                <div class="payment-card">
+                    <div class="payment-header">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <i class="fas fa-file-invoice-dollar text-3xl opacity-80"></i>
+                                <h2 class="text-xl font-bold mt-2">Paiement sécurisé</h2>
+                                <p class="text-white/70 text-sm">Facture #{{ $invoice->invoice_number }}</p>
+                            </div>
+                            <div class="bg-white/20 rounded-xl px-4 py-2 text-center">
+                                <div class="text-xs opacity-80">Montant total</div>
+                                <div class="text-xl font-bold">{{ number_format($invoice->amount, 2) }} DT</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="secure-badge">
-                        <i class="fas fa-lock text-success"></i>
-                        <span>Paiement 100% sécurisé</span>
+                    
+                    <div class="p-6">
+                        <!-- Récapitulatif -->
+                        <div class="space-y-3 mb-6">
+                            <div class="flex justify-between py-2 border-b border-slate-100">
+                                <span class="text-slate-500">Montant total</span>
+                                <span class="font-semibold">{{ number_format($invoice->amount, 2) }} DT</span>
+                            </div>
+                            <div class="flex justify-between py-2 border-b border-slate-100">
+                                <span class="text-slate-500">Déjà payé</span>
+                                <span class="font-semibold text-green-600">{{ number_format($invoice->paid_amount, 2) }} DT</span>
+                            </div>
+                            <div class="flex justify-between py-2 text-lg">
+                                <span class="font-bold text-slate-700">Reste à payer</span>
+                                <span class="font-bold text-red-600">{{ number_format($totalRemaining, 2) }} DT</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Détail des prises en charge -->
+                        <div class="bg-slate-50 rounded-xl p-4 mb-6">
+                            <h4 class="font-semibold text-slate-700 mb-3 text-sm">Détail des prises en charge</h4>
+                            <div class="space-y-2 text-sm">
+                                @if($invoice->cnam_amount > 0)
+                                <div class="flex justify-between">
+                                    <span><i class="fas fa-building text-blue-600 mr-2"></i>CNAM</span>
+                                    <span class="font-medium">
+                                        {{ number_format($invoice->cnam_amount, 2) }} DT
+                                        @if($invoice->cnam_paid) <span class="text-green-600 text-xs">(Payé)</span> @endif
+                                    </span>
+                                </div>
+                                @endif
+                                @if($invoice->mutuelle_amount > 0)
+                                <div class="flex justify-between">
+                                    <span><i class="fas fa-handshake text-green-600 mr-2"></i>Mutuelle</span>
+                                    <span class="font-medium">
+                                        {{ number_format($invoice->mutuelle_amount, 2) }} DT
+                                        @if($invoice->mutuelle_paid) <span class="text-green-600 text-xs">(Payé)</span> @endif
+                                    </span>
+                                </div>
+                                @endif
+                                @if($invoice->patient_amount > 0)
+                                <div class="flex justify-between">
+                                    <span><i class="fas fa-user text-orange-600 mr-2"></i>Patient</span>
+                                    <span class="font-medium">
+                                        {{ number_format($invoice->patient_amount, 2) }} DT
+                                        @if($invoice->patient_paid) <span class="text-green-600 text-xs">(Payé)</span> @endif
+                                    </span>
+                                </div>
+                                @endif
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-
-            <div class="card-body p-4">
-                <!-- Récapitulatif facture -->
-                <div class="bg-light p-3 rounded mb-4">
-                    <div class="row text-center">
-                        <div class="col-4">
-                            <small class="text-muted">Montant total</small>
-                            <h5 class="mb-0">{{ number_format($invoice->amount, 2) }} DT</h5>
-                        </div>
-                        <div class="col-4">
-                            <small class="text-muted">Déjà payé</small>
-                            <h5 class="mb-0 text-success">{{ number_format($invoice->paid_amount, 2) }} DT</h5>
-                        </div>
-                        <div class="col-4">
-                            <small class="text-muted">Reste à payer</small>
-                            <h5 class="mb-0 text-danger">{{ number_format($invoice->amount - $invoice->paid_amount, 2) }} DT</h5>
-                        </div>
+            
+            <!-- Formulaire de paiement -->
+            <div>
+                <div class="payment-card">
+                    <div class="p-6">
+                        <h3 class="text-lg font-bold text-slate-800 mb-4">Effectuer le paiement</h3>
+                        
+                        @php
+                            $processRoute = auth()->user()->role === 'patient' ? route('patient.invoices.processPayment', $invoice) : route('invoices.processPayment', $invoice);
+                        @endphp
+                        <form action="{{ $processRoute }}" method="POST" id="paymentForm">
+                            @csrf
+                            
+                            <!-- Type de paiement -->
+                            <div class="mb-5">
+                                <label class="block text-sm font-semibold text-slate-700 mb-3">Type de paiement</label>
+                                <div class="space-y-3">
+                                    @if($invoice->cnam_amount > 0 && $remainingCnam > 0)
+                                    <div class="type-option {{ $type == 'cnam' ? 'active' : '' }}" data-type="cnam" data-max="{{ $remainingCnam }}">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center gap-3">
+                                                <i class="fas fa-building text-blue-600 text-xl"></i>
+                                                <div>
+                                                    <div class="font-bold">CNAM</div>
+                                                    <div class="text-xs text-slate-500">Paiement par la CNAM</div>
+                                                </div>
+                                            </div>
+                                            <div class="text-right">
+                                                <div class="font-bold text-blue-600">{{ number_format($remainingCnam, 2) }} DT</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @endif
+                                    
+                                    @if($invoice->mutuelle_amount > 0 && $remainingMutuelle > 0)
+                                    <div class="type-option {{ $type == 'mutuelle' ? 'active' : '' }}" data-type="mutuelle" data-max="{{ $remainingMutuelle }}">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center gap-3">
+                                                <i class="fas fa-handshake text-green-600 text-xl"></i>
+                                                <div>
+                                                    <div class="font-bold">Mutuelle</div>
+                                                    <div class="text-xs text-slate-500">Paiement par la mutuelle</div>
+                                                </div>
+                                            </div>
+                                            <div class="text-right">
+                                                <div class="font-bold text-green-600">{{ number_format($remainingMutuelle, 2) }} DT</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @endif
+                                    
+                                    @if($invoice->patient_amount > 0 && $remainingPatient > 0)
+                                    <div class="type-option {{ $type == 'patient' ? 'active' : '' }}" data-type="patient" data-max="{{ $remainingPatient }}">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center gap-3">
+                                                <i class="fas fa-user text-orange-600 text-xl"></i>
+                                                <div>
+                                                    <div class="font-bold">Patient</div>
+                                                    <div class="text-xs text-slate-500">Paiement par le patient</div>
+                                                </div>
+                                            </div>
+                                            <div class="text-right">
+                                                <div class="font-bold text-orange-600">{{ number_format($remainingPatient, 2) }} DT</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @endif
+                                    
+                                    @if($remainingPatient > 0 && $invoice->patient_amount <= 0 && $invoice->cnam_amount <= 0 && $invoice->mutuelle_amount <= 0)
+                                    <div class="type-option active" data-type="patient" data-max="{{ $remainingPatient }}">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center gap-3">
+                                                <i class="fas fa-user text-orange-600 text-xl"></i>
+                                                <div>
+                                                    <div class="font-bold">Patient</div>
+                                                    <div class="text-xs text-slate-500">Reste à payer</div>
+                                                </div>
+                                            </div>
+                                            <div class="text-right">
+                                                <div class="font-bold text-orange-600">{{ number_format($remainingPatient, 2) }} DT</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @endif
+                                </div>
+                                <input type="hidden" name="payment_type" id="payment_type" value="{{ $type }}">
+                            </div>
+                            
+                            <!-- Montant -->
+                            <div class="mb-5">
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">Montant à payer</label>
+                                <div class="amount-box">
+                                    <div class="flex items-center justify-center gap-3">
+                                        <span class="text-2xl font-bold text-blue-600">DT</span>
+                                        <input type="number" 
+                                               name="amount" 
+                                               id="amount" 
+                                               step="0.01" 
+                                               value="{{ $maxAmount }}"
+                                               class="text-3xl font-bold text-center border-none bg-transparent focus:outline-none w-40"
+                                               required>
+                                    </div>
+                                    <div class="text-xs text-slate-400 mt-2" id="maxAmountHint">Maximum: {{ number_format($maxAmount, 2) }} DT</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Mode de paiement -->
+                            <div class="mb-5">
+                                <label class="block text-sm font-semibold text-slate-700 mb-3">Mode de paiement</label>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="payment-method {{ old('payment_method', 'transfer') == 'cash' ? 'active' : '' }}" data-method="cash">
+                                        <div class="payment-method-icon">💰</div>
+                                        <div class="text-sm font-medium">Espèces</div>
+                                    </div>
+                                    <div class="payment-method {{ old('payment_method', 'transfer') == 'card' ? 'active' : '' }}" data-method="card">
+                                        <div class="payment-method-icon">💳</div>
+                                        <div class="text-sm font-medium">Carte bancaire</div>
+                                    </div>
+                                    <div class="payment-method {{ old('payment_method', 'transfer') == 'check' ? 'active' : '' }}" data-method="check">
+                                        <div class="payment-method-icon">📝</div>
+                                        <div class="text-sm font-medium">Chèque</div>
+                                    </div>
+                                    <div class="payment-method {{ old('payment_method', 'transfer') == 'transfer' ? 'active' : '' }}" data-method="transfer">
+                                        <div class="payment-method-icon">🏦</div>
+                                        <div class="text-sm font-medium">Virement</div>
+                                    </div>
+                                </div>
+                                <input type="hidden" name="payment_method" id="payment_method" value="{{ old('payment_method', 'transfer') }}">
+                            </div>
+                            
+                            <!-- Référence (pour assurance) -->
+                            <div class="mb-5" id="referenceField" style="{{ $type == 'cnam' || $type == 'mutuelle' ? 'display: block;' : 'display: none;' }}">
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">Numéro de référence</label>
+                                <input type="text" name="reference_number" id="reference_number" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-400" placeholder="Numéro de bon / attestation">
+                                <p class="text-xs text-slate-400 mt-1">Requis pour les paiements CNAM et Mutuelle</p>
+                            </div>
+                            
+                            <!-- Notes -->
+                            <div class="mb-6">
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">Notes (optionnel)</label>
+                                <textarea name="notes" rows="2" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-400" placeholder="Informations complémentaires..."></textarea>
+                            </div>
+                            
+                            <!-- Bouton de paiement -->
+                            <button type="submit" class="btn-pay" id="submitBtn">
+                                <i class="fas fa-lock mr-2"></i>
+                                Confirmer le paiement
+                            </button>
+                            
+                            <p class="text-center text-xs text-slate-400 mt-4">
+                                <i class="fas fa-shield-alt mr-1"></i> Paiement sécurisé
+                            </p>
+                        </form>
                     </div>
                 </div>
-
-                <!-- Aperçu de la carte -->
-                <div class="card-preview" id="cardPreview">
-                    <img src="https://cdn-icons-png.flaticon.com/512/217/217980.png" class="card-chip" alt="chip">
-                    <div class="card-number text-center" id="previewCardNumber">•••• •••• •••• ••••</div>
-                    <div class="row mt-3">
-                        <div class="col-8">
-                            <small>TITULAIRE</small>
-                            <div class="card-holder" id="previewCardHolder">NOM PRENOM</div>
-                        </div>
-                        <div class="col-4">
-                            <small>EXPIRATION</small>
-                            <div class="card-expiry" id="previewCardExpiry">MM/AA</div>
-                        </div>
-                    </div>
-                    <div class="card-brand" id="cardBrandIcon">
-                        <i class="fab fa-cc-visa"></i>
-                    </div>
-                </div>
-
-                <form action="{{ route('invoices.processPayment', $invoice) }}" method="POST" id="paymentForm">
-                    @csrf
-
-                    <!-- Montant à payer -->
-                    <div class="mb-4">
-                        <label class="form-label fw-bold">Montant à payer</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-primary text-white">DT</span>
-                            <input type="number" step="0.01" name="amount" id="amount" 
-                                   class="form-control form-control-lg"
-                                   value="{{ $invoice->amount - $invoice->paid_amount }}"
-                                   min="0.01"
-                                   max="{{ $invoice->amount - $invoice->paid_amount }}"
-                                   required>
-                        </div>
-                    </div>
-
-                    <!-- Numéro de carte -->
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Numéro de carte</label>
-                        <div class="position-relative">
-                            <input type="text" name="card_number" id="cardNumber" 
-                                   class="form-control form-control-lg card-number-input"
-                                   placeholder="1234 5678 9012 3456"
-                                   maxlength="19"
-                                   required>
-                            <div class="card-icon" id="cardIcon">
-                                <i class="far fa-credit-card"></i>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <!-- Date d'expiration -->
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold">Date d'expiration</label>
-                            <div class="row">
-                                <div class="col-6">
-                                    <select name="exp_month" id="expMonth" class="form-select" required>
-                                        <option value="">Mois</option>
-                                        @for($i=1; $i<=12; $i++)
-                                            <option value="{{ sprintf('%02d', $i) }}">{{ sprintf('%02d', $i) }}</option>
-                                        @endfor
-                                    </select>
-                                </div>
-                                <div class="col-6">
-                                    <select name="exp_year" id="expYear" class="form-select" required>
-                                        <option value="">Année</option>
-                                        @for($i=date('Y'); $i<=date('Y')+10; $i++)
-                                            <option value="{{ $i }}">{{ $i }}</option>
-                                        @endfor
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- CVV -->
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold">CVV / CVC</label>
-                            <input type="text" name="cvv" id="cvv" 
-                                   class="form-control form-control-lg"
-                                   placeholder="123"
-                                   maxlength="4"
-                                   required>
-                            <small class="text-muted">Code à 3 ou 4 chiffres</small>
-                        </div>
-                    </div>
-
-                    <!-- Nom du titulaire -->
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Nom du titulaire</label>
-                        <input type="text" name="card_holder" id="cardHolder" 
-                               class="form-control form-control-lg"
-                               placeholder="Comme inscrit sur la carte"
-                               required>
-                    </div>
-
-                    <!-- Mode de paiement -->
-                    <div class="mb-4">
-                        <label class="form-label fw-bold">Mode de paiement</label>
-                        <div class="row">
-                            <div class="col-3">
-                                <div class="payment-method-box" data-method="card">
-                                    <i class="fas fa-credit-card fa-2x mb-2"></i>
-                                    <div>Carte</div>
-                                </div>
-                            </div>
-                            <div class="col-3">
-                                <div class="payment-method-box" data-method="cash">
-                                    <i class="fas fa-money-bill fa-2x mb-2"></i>
-                                    <div>Espèces</div>
-                                </div>
-                            </div>
-                            <div class="col-3">
-                                <div class="payment-method-box" data-method="check">
-                                    <i class="fas fa-check-circle fa-2x mb-2"></i>
-                                    <div>Chèque</div>
-                                </div>
-                            </div>
-                            <div class="col-3">
-                                <div class="payment-method-box" data-method="transfer">
-                                    <i class="fas fa-university fa-2x mb-2"></i>
-                                    <div>Virement</div>
-                                </div>
-                            </div>
-                        </div>
-                        <input type="hidden" name="payment_method" id="paymentMethod" value="card">
-                    </div>
-
-                    <!-- Notes -->
-                    <div class="mb-4">
-                        <label class="form-label fw-bold">Notes</label>
-                        <textarea name="notes" class="form-control" rows="2" placeholder="Informations complémentaires..."></textarea>
-                    </div>
-
-                    <!-- Bouton de paiement -->
-                    <button type="submit" class="btn btn-pay w-100" id="payBtn">
-                        <i class="fas fa-lock me-2"></i> Payer {{ number_format($invoice->amount - $invoice->paid_amount, 2) }} DT
-                    </button>
-
-                    <div class="text-center mt-3">
-                        <small class="text-muted">
-                            <i class="fas fa-shield-alt me-1"></i> Transactions sécurisées par cryptage SSL
-                        </small>
-                    </div>
-                </form>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-// Formatage du numéro de carte
-document.getElementById('cardNumber').addEventListener('input', function(e) {
-    let value = e.target.value.replace(/\D/g, '');
-    let formatted = '';
-    for (let i = 0; i < value.length; i++) {
-        if (i > 0 && i % 4 === 0) formatted += ' ';
-        formatted += value[i];
-    }
-    e.target.value = formatted.substring(0, 19);
-    
-    // Mettre à jour l'aperçu
-    let displayValue = formatted;
-    if (displayValue.length < 19) {
-        let missing = 19 - displayValue.length;
-        displayValue += '•'.repeat(missing);
-    }
-    document.getElementById('previewCardNumber').innerText = displayValue || '•••• •••• •••• ••••';
-    
-    // Détecter le type de carte
-    let firstDigit = value.charAt(0);
-    let iconDiv = document.getElementById('cardIcon');
-    let brandIcon = document.getElementById('cardBrandIcon');
-    
-    if (firstDigit === '4') {
-        iconDiv.innerHTML = '<i class="fab fa-cc-visa fa-2x text-primary"></i>';
-        brandIcon.innerHTML = '<i class="fab fa-cc-visa fa-3x"></i>';
-    } else if (firstDigit === '5') {
-        iconDiv.innerHTML = '<i class="fab fa-cc-mastercard fa-2x text-danger"></i>';
-        brandIcon.innerHTML = '<i class="fab fa-cc-mastercard fa-3x"></i>';
-    } else if (firstDigit === '3') {
-        iconDiv.innerHTML = '<i class="fab fa-cc-amex fa-2x text-primary"></i>';
-        brandIcon.innerHTML = '<i class="fab fa-cc-amex fa-3x"></i>';
-    } else {
-        iconDiv.innerHTML = '<i class="far fa-credit-card fa-2x"></i>';
-        brandIcon.innerHTML = '<i class="fas fa-credit-card fa-3x"></i>';
-    }
-});
-
-// Mise à jour de la date d'expiration dans l'aperçu
-document.getElementById('expMonth').addEventListener('change', updateExpiry);
-document.getElementById('expYear').addEventListener('change', updateExpiry);
-
-function updateExpiry() {
-    let month = document.getElementById('expMonth').value;
-    let year = document.getElementById('expYear').value;
-    if (month && year) {
-        document.getElementById('previewCardExpiry').innerText = month + '/' + year.toString().slice(-2);
-    }
-}
-
-// Mise à jour du nom du titulaire
-document.getElementById('cardHolder').addEventListener('input', function(e) {
-    let value = e.target.value.toUpperCase();
-    document.getElementById('previewCardHolder').innerText = value || 'NOM PRENOM';
-});
-
-// CVV focus
-document.getElementById('cvv').addEventListener('focus', function() {
-    document.getElementById('cardPreview').style.transform = 'rotateY(5deg)';
-});
-document.getElementById('cvv').addEventListener('blur', function() {
-    document.getElementById('cardPreview').style.transform = 'rotateY(0)';
-});
-
-// Sélection du mode de paiement
-document.querySelectorAll('.payment-method-box').forEach(box => {
-    box.addEventListener('click', function() {
-        document.querySelectorAll('.payment-method-box').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        document.getElementById('paymentMethod').value = this.dataset.method;
+    document.addEventListener('DOMContentLoaded', function() {
+        // Éléments
+        const typeOptions = document.querySelectorAll('.type-option');
+        const paymentMethods = document.querySelectorAll('.payment-method');
+        const amountInput = document.getElementById('amount');
+        const paymentTypeInput = document.getElementById('payment_type');
+        const paymentMethodInput = document.getElementById('payment_method');
+        const referenceField = document.getElementById('referenceField');
+        const referenceNumberInput = document.getElementById('reference_number');
+        const maxAmountHint = document.getElementById('maxAmountHint');
+        const submitBtn = document.getElementById('submitBtn');
+        const paymentForm = document.getElementById('paymentForm');
         
-        // Cacher/afficher les champs de carte selon le mode
-        let cardFields = document.querySelectorAll('#cardNumber, #expMonth, #expYear, #cvv, #cardHolder');
-        if (this.dataset.method === 'card') {
-            cardFields.forEach(f => f.disabled = false);
-            document.getElementById('cardPreview').style.display = 'block';
-        } else {
-            cardFields.forEach(f => f.disabled = true);
-            document.getElementById('cardPreview').style.display = 'none';
+        let currentMaxAmount = {{ $maxAmount }};
+        
+        // Sélection du type de paiement
+        typeOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                typeOptions.forEach(opt => opt.classList.remove('active'));
+                this.classList.add('active');
+                
+                const type = this.dataset.type;
+                const maxAmount = parseFloat(this.dataset.max);
+                
+                paymentTypeInput.value = type;
+                currentMaxAmount = maxAmount;
+                
+                // Mettre à jour le champ montant
+                amountInput.value = maxAmount.toFixed(2);
+                
+                // Afficher le hint
+                if (maxAmountHint) {
+                    maxAmountHint.textContent = `Maximum: ${maxAmount.toFixed(2)} DT`;
+                }
+                
+                // Afficher/cacher le champ référence
+                if (referenceField) {
+                    if (type === 'cnam' || type === 'mutuelle') {
+                        referenceField.style.display = 'block';
+                    } else {
+                        referenceField.style.display = 'none';
+                        if (referenceNumberInput) referenceNumberInput.value = '';
+                    }
+                }
+            });
+        });
+        
+        // Sélection du mode de paiement
+        paymentMethods.forEach(method => {
+            method.addEventListener('click', function() {
+                paymentMethods.forEach(m => m.classList.remove('active'));
+                this.classList.add('active');
+                if (paymentMethodInput) {
+                    paymentMethodInput.value = this.dataset.method;
+                }
+            });
+        });
+        
+        // Validation du montant
+        if (amountInput) {
+            amountInput.addEventListener('input', function() {
+                let value = parseFloat(this.value);
+                if (isNaN(value)) return;
+                
+                if (value > currentMaxAmount) {
+                    this.value = currentMaxAmount.toFixed(2);
+                }
+            });
+        }
+        
+        // Validation du formulaire
+        if (paymentForm) {
+            paymentForm.addEventListener('submit', function(e) {
+                const amount = parseFloat(amountInput.value);
+                
+                if (isNaN(amount) || amount <= 0) {
+                    e.preventDefault();
+                    alert('Veuillez saisir un montant valide');
+                    return false;
+                }
+                
+                if (amount > (currentMaxAmount + 0.01)) { // Marge d'erreur de calcul
+                    e.preventDefault();
+                    alert('Le montant ne peut pas dépasser ' + currentMaxAmount.toFixed(2) + ' DT');
+                    return false;
+                }
+                
+                const paymentType = paymentTypeInput.value;
+                if ((paymentType === 'cnam' || paymentType === 'mutuelle')) {
+                    const reference = referenceNumberInput ? referenceNumberInput.value.trim() : '';
+                    if (!reference) {
+                        e.preventDefault();
+                        alert('Veuillez saisir le numéro de référence pour le paiement ' + (paymentType === 'cnam' ? 'CNAM' : 'Mutuelle'));
+                        if (referenceNumberInput) referenceNumberInput.focus();
+                        return false;
+                    }
+                }
+                
+                // Effet visuel
+                if (submitBtn) {
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Traitement...';
+                    submitBtn.style.opacity = '0.7';
+                }
+                
+                return true;
+            });
         }
     });
-});
-
-// Validation avant soumission
-document.getElementById('paymentForm').addEventListener('submit', function(e) {
-    let method = document.getElementById('paymentMethod').value;
-    
-    if (method === 'card') {
-        let cardNumber = document.getElementById('cardNumber').value.replace(/\s/g, '');
-        let expMonth = document.getElementById('expMonth').value;
-        let expYear = document.getElementById('expYear').value;
-        let cvv = document.getElementById('cvv').value;
-        let cardHolder = document.getElementById('cardHolder').value;
-        
-        if (cardNumber.length < 16) {
-            alert('Veuillez entrer un numéro de carte valide (16 chiffres)');
-            e.preventDefault();
-            return false;
-        }
-        
-        if (!expMonth || !expYear) {
-            alert('Veuillez sélectionner la date d\'expiration');
-            e.preventDefault();
-            return false;
-        }
-        
-        if (cvv.length < 3) {
-            alert('Veuillez entrer un CVV valide');
-            e.preventDefault();
-            return false;
-        }
-        
-        if (!cardHolder) {
-            alert('Veuillez entrer le nom du titulaire');
-            e.preventDefault();
-            return false;
-        }
-    }
-    
-    let btn = document.getElementById('payBtn');
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Traitement en cours...';
-    btn.disabled = true;
-});
-
-// Activer la carte par défaut
-document.querySelector('.payment-method-box[data-method="card"]').classList.add('active');
 </script>
+
 @endsection

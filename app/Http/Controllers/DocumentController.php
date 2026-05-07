@@ -26,21 +26,39 @@ class DocumentController extends Controller
     {
         $search = $request->q;
         
-        $patient = Patient::with('user')
+        $patient = Patient::with(['user', 'documents'])
             ->whereHas('user', function($query) use ($search) {
-                $query->where('name', 'like', "%{$search}%");
+                $query->where('name', 'like', "%{$search}%")
+                      ->orWhere('phone', 'like', "%{$search}%");
             })
             ->first();
             
         if ($patient) {
-            $documents = $patient->documents ?? [];
+            $documents = $patient->documents->map(function($doc) {
+                return [
+                    'id' => $doc->id,
+                    'title' => $doc->title,
+                    'type' => $doc->type_label,
+                    'type_icon' => $doc->type_icon,
+                    'date' => $doc->created_at->format('d/m/Y H:i'),
+                    'url' => Storage::url($doc->file_path),
+                ];
+            });
+
             return response()->json([
-                'patient' => $patient->user,
+                'success' => true,
+                'patient' => [
+                    'name' => $patient->user->name,
+                    'cin' => $patient->insurance_number ?? $patient->user->phone ?? 'N/A',
+                ],
                 'documents' => $documents
             ]);
         }
         
-        return response()->json(null);
+        return response()->json([
+            'success' => false,
+            'message' => 'Aucun patient trouvé'
+        ]);
     }
 
     public function print($id)
@@ -65,7 +83,7 @@ class DocumentController extends Controller
         $prescription = Prescription::create([
             'patient_id' => $request->patient_id,
             'doctor_id' => auth()->user()->doctor->id,
-            'medications' => json_encode($request->medications),
+            'medications' => $request->medications, // Model casts this to array/json automatically
             'instructions' => $request->instructions,
             'prescription_date' => now(),
             'status' => 'active',
@@ -73,11 +91,24 @@ class DocumentController extends Controller
 
         $pdf = Pdf::loadView('pdf.prescription', compact('prescription'));
         $filename = 'ordonnance_' . $prescription->id . '_' . date('Y-m-d') . '.pdf';
-        $pdf->save(storage_path('app/public/' . $filename));
+        $path = 'documents/' . $filename;
+        Storage::disk('public')->put($path, $pdf->output());
+
+        // Sauvegarder dans la table Document pour que ça apparaisse dans le dossier patient
+        Document::create([
+            'patient_id' => $request->patient_id,
+            'title' => 'Ordonnance - ' . date('d/m/Y'),
+            'type' => 'prescription',
+            'file_path' => $path,
+            'file_name' => $filename,
+            'file_type' => 'application/pdf',
+            'file_size' => Storage::disk('public')->size($path),
+            'description' => $request->instructions ?? 'Ordonnance médicale',
+        ]);
 
         return response()->json([
             'success' => true, 
-            'pdf_url' => '/storage/' . $filename
+            'pdf_url' => Storage::url($path)
         ]);
     }
 
@@ -91,6 +122,7 @@ class DocumentController extends Controller
         ]);
 
         $patient = Patient::with('user')->find($request->patient_id);
+        $doctor = auth()->user()->doctor;
         
         $data = [
             'patient' => $patient,
@@ -98,16 +130,28 @@ class DocumentController extends Controller
             'duration' => $request->duration,
             'reason' => $request->reason,
             'date' => now(),
-            'doctor' => auth()->user()->doctor,
+            'doctor' => $doctor,
         ];
 
         $pdf = Pdf::loadView('pdf.certificate', $data);
         $filename = 'certificat_' . $patient->id . '_' . date('Y-m-d') . '.pdf';
-        $pdf->save(storage_path('app/public/' . $filename));
+        $path = 'documents/' . $filename;
+        Storage::disk('public')->put($path, $pdf->output());
+
+        Document::create([
+            'patient_id' => $request->patient_id,
+            'title' => 'Certificat: ' . ucfirst($request->type),
+            'type' => 'certificate',
+            'file_path' => $path,
+            'file_name' => $filename,
+            'file_type' => 'application/pdf',
+            'file_size' => Storage::disk('public')->size($path),
+            'description' => $request->reason ?? 'Certificat médical de type ' . $request->type,
+        ]);
 
         return response()->json([
             'success' => true,
-            'pdf_url' => '/storage/' . $filename
+            'pdf_url' => Storage::url($path)
         ]);
     }
 
@@ -121,6 +165,7 @@ class DocumentController extends Controller
         ]);
 
         $patient = Patient::with('user')->find($request->patient_id);
+        $doctor = auth()->user()->doctor;
         
         $data = [
             'patient' => $patient,
@@ -128,16 +173,28 @@ class DocumentController extends Controller
             'treatment' => $request->treatment,
             'recommendations' => $request->recommendations,
             'date' => now(),
-            'doctor' => auth()->user()->doctor,
+            'doctor' => $doctor,
         ];
 
         $pdf = Pdf::loadView('pdf.report', $data);
         $filename = 'compte_rendu_' . $patient->id . '_' . date('Y-m-d') . '.pdf';
-        $pdf->save(storage_path('app/public/' . $filename));
+        $path = 'documents/' . $filename;
+        Storage::disk('public')->put($path, $pdf->output());
+
+        Document::create([
+            'patient_id' => $request->patient_id,
+            'title' => 'Compte-rendu - ' . date('d/m/Y'),
+            'type' => 'report',
+            'file_path' => $path,
+            'file_name' => $filename,
+            'file_type' => 'application/pdf',
+            'file_size' => Storage::disk('public')->size($path),
+            'description' => $request->diagnosis ?? 'Compte-rendu médical',
+        ]);
 
         return response()->json([
             'success' => true,
-            'pdf_url' => '/storage/' . $filename
+            'pdf_url' => Storage::url($path)
         ]);
     }
 }

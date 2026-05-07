@@ -5,14 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
         'name', 'email', 'password', 'role', 'phone', 'address', 
-        'birth_date', 'specialite_id', 'departement_id','avatar',
+        'birth_date', 'specialite_id', 'departement_id', 'avatar',
     ];
 
     protected $hidden = [
@@ -24,9 +25,9 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'birth_date' => 'date',
         ];
     }
-    
 
     public function patient()
     {
@@ -46,6 +47,15 @@ class User extends Authenticatable
     public function departement()
     {
         return $this->belongsTo(Departement::class);
+    }
+
+    public function getAvatarUrlAttribute()
+    {
+        if ($this->avatar) {
+            return asset('storage/avatars/' . $this->avatar);
+        }
+
+        return asset('assets/img/avatars/user.png');
     }
 
     public function isAdmin()

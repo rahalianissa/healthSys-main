@@ -15,18 +15,21 @@ class PaymentController extends Controller
     // Rediriger vers la page de paiement manuel
     public function checkout(Invoice $invoice)
     {
-        return redirect()->route('invoices.pay', $invoice);
+        $routeName = auth()->user()->role === 'patient' ? 'patient.invoices.pay' : 'invoices.pay';
+        return redirect()->route($routeName, $invoice);
     }
 
     public function success(Invoice $invoice, Request $request)
     {
-        return redirect()->route('invoices.show', $invoice)
+        $routeName = auth()->user()->role === 'patient' ? 'patient.invoices.show' : 'invoices.show';
+        return redirect()->route($routeName, $invoice)
             ->with('success', '✅ Paiement effectué avec succès');
     }
 
     public function cancel(Invoice $invoice)
     {
-        return redirect()->route('invoices.show', $invoice)
+        $routeName = auth()->user()->role === 'patient' ? 'patient.invoices.show' : 'invoices.show';
+        return redirect()->route($routeName, $invoice)
             ->with('error', '❌ Paiement annulé');
     }
 }

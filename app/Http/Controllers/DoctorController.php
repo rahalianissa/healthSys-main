@@ -138,13 +138,16 @@ class DoctorController extends Controller
     {
         $doctorId = auth()->user()->doctor->id;
         
-        $patients = Appointment::with(['patient.user'])
-            ->where('doctor_id', $doctorId)
-            ->where('status', 'completed')
-            ->select('patient_id')
-            ->distinct()
-            ->get()
-            ->pluck('patient');
+        // Récupérer les patients qui ont soit un rendez-vous, soit une consultation avec ce médecin
+        $patients = Patient::with(['user', 'consultations', 'prescriptions'])
+            ->where(function($query) use ($doctorId) {
+                $query->whereHas('appointments', function($q) use ($doctorId) {
+                    $q->where('doctor_id', $doctorId);
+                })->orWhereHas('consultations', function($q) use ($doctorId) {
+                    $q->where('doctor_id', $doctorId);
+                });
+            })
+            ->get();
         
         return view('doctor.patients', compact('patients'));
     }

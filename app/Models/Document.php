@@ -39,4 +39,16 @@ class Document extends Model
         ];
         return $types[$this->type] ?? 'Document';
     }
+
+    public function getTypeIconAttribute()
+    {
+        $icons = [
+            'prescription' => 'fa-prescription',
+            'certificate' => 'fa-file-medical',
+            'report' => 'fa-file-alt',
+            'analysis' => 'fa-microscope',
+            'scan' => 'fa-x-ray'
+        ];
+        return $icons[$this->type] ?? 'fa-file';
+    }
 }

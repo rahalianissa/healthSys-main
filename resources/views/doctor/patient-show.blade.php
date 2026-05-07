@@ -1,385 +1,588 @@
 @extends('layouts.app')
 
-@section('title', 'Dossier patient - ' . $patient->user->name)
-@section('page-title', 'Dossier médical de ' . $patient->user->name)
+@section('page_title', 'Dossier Médical - ' . $patient->user->name)
 
 @section('styles')
 <style>
-    .info-card {
-        background: white;
-        border-radius: 15px;
-        transition: all 0.3s;
-        border-left: 4px solid #1a5f7a;
+    :root {
+        --primary-blue: #023E8A;
+        --primary-dark: #03045E;
+        --primary-light: #0077B6;
+        --primary-lighter: #00B4D8;
+        --primary-soft: #48CAE4;
+        --primary-bg: #f8fafc;
+        --white: #ffffff;
+        --success: #10B981;
+        --warning: #F59E0B;
+        --danger: #EF4444;
+        --text-main: #1e293b;
+        --text-muted: #64748b;
+        --border-color: #e2e8f0;
+        --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
     }
-    .info-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+
+    .dossier-wrapper {
+        background-color: var(--primary-bg);
+        min-height: 100vh;
+        padding-bottom: 50px;
     }
-    .stat-number {
-        font-size: 24px;
-        font-weight: bold;
+
+    /* Side Sidebar Profile */
+    .profile-sidebar {
+        background: var(--white);
+        border-radius: 24px;
+        padding: 30px 20px;
+        border: 1px solid var(--border-color);
+        box-shadow: var(--card-shadow);
+        height: fit-content;
+        position: sticky;
+        top: 20px;
     }
-    .consultation-row {
-        transition: all 0.2s;
-        cursor: pointer;
-    }
-    .consultation-row:hover {
-        background-color: #e8f4f8 !important;
-        transform: scale(1.01);
-    }
-    .prescription-item {
-        transition: all 0.2s;
-    }
-    .prescription-item:hover {
-        background-color: #f5f5f5;
-        transform: translateX(5px);
-    }
-    .btn-consult {
-        background: linear-gradient(135deg, #1a5f7a, #0d3b4f);
+
+    .avatar-wrapper {
+        width: 100px;
+        height: 100px;
+        background: linear-gradient(135deg, var(--primary-blue), var(--primary-light));
+        border-radius: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+        font-size: 42px;
         color: white;
-        border: none;
-        transition: all 0.3s;
+        font-weight: 700;
+        box-shadow: 0 10px 20px rgba(2, 62, 138, 0.2);
     }
-    .btn-consult:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(26,95,122,0.3);
+
+    .patient-status {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .status-active { background: #dcfce7; color: #15803d; }
+
+    .info-list {
+        margin-top: 30px;
+    }
+    .info-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+    .info-icon-box {
+        width: 36px;
+        height: 36px;
+        background: #f1f5f9;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--primary-blue);
+        font-size: 14px;
+    }
+    .info-content .label {
+        font-size: 11px;
+        color: var(--text-muted);
+        display: block;
+        margin-bottom: 1px;
+    }
+    .info-content .value {
+        font-size: 14px;
+        color: var(--text-main);
+        font-weight: 600;
+    }
+
+    /* Tab Navigation */
+    .custom-tabs {
+        display: flex;
+        gap: 10px;
+        background: #f1f5f9;
+        padding: 6px;
+        border-radius: 16px;
+        margin-bottom: 25px;
+    }
+    .tab-btn {
+        flex: 1;
+        padding: 10px 15px;
+        border: none;
+        background: transparent;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-muted);
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    .tab-btn i { font-size: 16px; }
+    .tab-btn.active {
+        background: var(--white);
+        color: var(--primary-blue);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .tab-btn:hover:not(.active) {
+        background: rgba(255,255,255,0.5);
+        color: var(--text-main);
+    }
+
+    /* Content Cards */
+    .medical-card {
+        background: var(--white);
+        border-radius: 24px;
+        padding: 25px;
+        border: 1px solid var(--border-color);
+        box-shadow: var(--card-shadow);
+        margin-bottom: 25px;
+        animation: fadeIn 0.4s ease-out;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-main);
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .card-title i { color: var(--primary-blue); }
+
+    /* Consultation Items */
+    .timeline-item {
+        position: relative;
+        padding-left: 30px;
+        margin-bottom: 30px;
+        border-left: 2px solid var(--border-color);
+    }
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -7px;
+        top: 0;
+        width: 12px;
+        height: 12px;
+        background: var(--white);
+        border: 2px solid var(--primary-blue);
+        border-radius: 50%;
+    }
+    .timeline-date {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--primary-blue);
+        margin-bottom: 5px;
+    }
+    .timeline-content {
+        background: #f8fafc;
+        border-radius: 16px;
+        padding: 15px;
+        border: 1px solid var(--border-color);
+    }
+
+    /* Health Vitals Grid */
+    .vitals-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 15px;
+    }
+    .vital-box {
+        background: #fff;
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 15px;
+        text-align: center;
+    }
+    .vital-icon {
+        font-size: 20px;
+        margin-bottom: 8px;
+    }
+    .vital-val { font-size: 18px; font-weight: 800; color: var(--text-main); }
+    .vital-lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
+
+    /* Print and Actions */
+    @media print {
+        .profile-sidebar, .custom-tabs, .btn-actions { display: none !important; }
+        .tab-pane { display: block !important; opacity: 1 !important; }
     }
 </style>
 @endsection
 
 @section('content')
-<div class="row">
-    <!-- ========== CARTE INFORMATIONS PATIENT ========== -->
-    <div class="col-md-4 mb-4">
-        <div class="card info-card shadow-sm border-0">
-            <div class="card-header bg-white border-0 pt-4">
-                <h5 class="mb-0">
-                    <i class="fas fa-user-circle text-primary me-2"></i> Informations patient
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="text-center mb-3">
-                    <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex p-3">
-                        <i class="fas fa-user fa-3x text-primary"></i>
+<div class="dossier-wrapper">
+    <div class="container py-4">
+        <div class="row g-4">
+            <!-- Sidebar -->
+            <div class="col-lg-3">
+                <div class="profile-sidebar">
+                    <div class="text-center">
+                        <div class="avatar-wrapper">
+                            {{ strtoupper(substr($patient->user->name, 0, 1)) }}
+                        </div>
+                        <h4 class="fw-bold text-main mb-1">{{ $patient->user->name }}</h4>
+                        <span class="patient-status status-active">Patient Actif</span>
                     </div>
-                    <h4 class="mt-2 mb-0">{{ $patient->user->name }}</h4>
-                    <small class="text-muted">Patient ID: #{{ $patient->id }}</small>
-                </div>
-                
-                <div class="border-top pt-3">
-                    <div class="row mb-2">
-                        <div class="col-5 text-muted">📧 Email</div>
-                        <div class="col-7">{{ $patient->user->email ?? 'Non renseigné' }}</div>
-                    </div>
-                    <div class="row mb-2">
-                        <div class="col-5 text-muted">📞 Téléphone</div>
-                        <div class="col-7">{{ $patient->user->phone ?? 'Non renseigné' }}</div>
-                    </div>
-                    <div class="row mb-2">
-                        <div class="col-5 text-muted">🎂 Date naissance</div>
-                        <div class="col-7">{{ $patient->user->birth_date ? \Carbon\Carbon::parse($patient->user->birth_date)->format('d/m/Y') : 'Non renseignée' }}</div>
-                    </div>
-                    <div class="row mb-2">
-                        <div class="col-5 text-muted">🩸 Groupe sanguin</div>
-                        <div class="col-7">{{ $patient->blood_type ?? 'Non renseigné' }}</div>
-                    </div>
-                    <div class="row mb-2">
-                        <div class="col-5 text-muted">🏢 Mutuelle</div>
-                        <div class="col-7">{{ $patient->insurance_company ?? 'Aucune' }}</div>
-                    </div>
-                </div>
-                
-                <hr>
-                
-                <div class="row text-center">
-                    <div class="col-4">
-                        <div class="border-end">
-                            <h5 class="text-primary mb-0 stat-number">{{ $stats['total_appointments'] }}</h5>
-                            <small class="text-muted">RDV</small>
+
+                    <div class="info-list">
+                        <div class="info-item">
+                            <div class="info-icon-box"><i class="fas fa-venus-mars"></i></div>
+                            <div class="info-content">
+                                <span class="label">Genre / Âge</span>
+                                <span class="value">{{ $patient->gender ?? 'Non spécifié' }} / {{ $patient->user->birth_date ? \Carbon\Carbon::parse($patient->user->birth_date)->age . ' ans' : 'N/A' }}</span>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-icon-box"><i class="fas fa-tint text-danger"></i></div>
+                            <div class="info-content">
+                                <span class="label">Groupe Sanguin</span>
+                                <span class="value">{{ $patient->blood_type ?? 'Inconnu' }}</span>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-icon-box"><i class="fas fa-phone"></i></div>
+                            <div class="info-content">
+                                <span class="label">Contact</span>
+                                <span class="value">{{ $patient->user->phone ?? 'Aucun' }}</span>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-icon-box"><i class="fas fa-shield-alt text-success"></i></div>
+                            <div class="info-content">
+                                <span class="label">Assurance</span>
+                                <span class="value">{{ $patient->has_cnam ? 'CNAM' : ($patient->has_mutuelle ? 'Mutuelle' : 'Aucune') }}</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-4">
-                        <div class="border-end">
-                            <h5 class="text-success mb-0 stat-number">{{ $stats['total_consultations'] }}</h5>
-                            <small class="text-muted">Consult.</small>
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <h5 class="text-warning mb-0 stat-number">{{ $stats['total_prescriptions'] }}</h5>
-                        <small class="text-muted">Ordonn.</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- ========== HISTORIQUE DES CONSULTATIONS ========== -->
-    <div class="col-md-8 mb-4">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white border-0 pt-4 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">
-                    <i class="fas fa-history text-info me-2"></i> Historique des consultations
-                </h5>
-                <a href="{{ route('doctor.consultations.create') }}?patient={{ $patient->id }}" class="btn btn-consult btn-sm">
-                    <i class="fas fa-plus me-1"></i> Nouvelle consultation
-                </a>
-            </div>
-            <div class="card-body">
-                @if($patient->consultations->count() > 0)
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Médecin</th>
-                                    <th>Diagnostic</th>
-                                    <th>Traitement</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($patient->consultations as $consultation)
-                                <tr class="consultation-row">
-                                    <td>
-                                        <span class="fw-bold">{{ $consultation->consultation_date->format('d/m/Y') }}</span>
-                                        <br>
-                                        <small class="text-muted">{{ $consultation->consultation_date->format('H:i') }}</small>
-                                    </td>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="bg-info bg-opacity-10 rounded-circle p-2 me-2">
-                                                <i class="fas fa-user-md text-info"></i>
-                                            </div>
-                                            <div>
-                                                <strong>Dr. {{ $consultation->doctor->user->name ?? 'N/A' }}</strong>
-                                                <br>
-                                                <small class="text-muted">{{ $consultation->doctor->specialty ?? 'N/A' }}</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        @if($consultation->diagnosis)
-                                            <span class="badge bg-info">{{ Str::limit($consultation->diagnosis, 40) }}</span>
-                                        @else
-                                            <span class="badge bg-secondary">Non renseigné</span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        @if($consultation->treatment)
-                                            <span class="badge bg-success">{{ Str::limit($consultation->treatment, 40) }}</span>
-                                        @else
-                                            <span class="badge bg-secondary">Non renseigné</span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <button class="btn btn-info btn-sm" onclick="showConsultationDetails({{ $consultation->id }})">
-                                            <i class="fas fa-eye"></i> Détails
-                                        </button>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                @else
-                    <div class="text-center py-5">
-                        <i class="fas fa-stethoscope fa-4x text-muted mb-3 opacity-25"></i>
-                        <p class="text-muted mb-0">Aucune consultation avec ce patient</p>
-                        <a href="{{ route('doctor.consultations.create') }}?patient={{ $patient->id }}" class="btn btn-primary mt-3">
-                            <i class="fas fa-plus me-2"></i> Première consultation
+
+                    <hr class="my-4 opacity-50">
+
+                    <div class="d-grid gap-2">
+                        <a href="{{ route('doctor.consultations.create') }}?patient={{ $patient->id }}" class="btn btn-primary rounded-xl py-2 fw-bold">
+                            <i class="fas fa-plus-circle me-2"></i>Nouvelle Visite
                         </a>
+                        <button class="btn btn-outline-secondary rounded-xl py-2 fw-bold" onclick="window.print()">
+                            <i class="fas fa-print me-2"></i>Imprimer Dossier
+                        </button>
                     </div>
-                @endif
+                </div>
             </div>
-        </div>
-        
-        <!-- ========== ORDONNANCES ========== -->
-        <div class="card shadow-sm border-0 mt-4">
-            <div class="card-header bg-white border-0 pt-4">
-                <h5 class="mb-0">
-                    <i class="fas fa-prescription text-danger me-2"></i> Ordonnances
-                </h5>
-            </div>
-            <div class="card-body">
-                @if($patient->prescriptions->count() > 0)
-                    <div class="list-group">
-                        @foreach($patient->prescriptions as $prescription)
-                            <div class="list-group-item prescription-item border-0 border-bottom">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <div class="d-flex align-items-center mb-1">
-                                            <i class="fas fa-file-prescription text-danger me-2"></i>
-                                            <strong>Ordonnance du {{ $prescription->created_at->format('d/m/Y') }}</strong>
-                                        </div>
-                                        <small class="text-muted">
-                                            <i class="fas fa-user-md me-1"></i> Dr. {{ $prescription->doctor->user->name ?? 'N/A' }}
-                                        </small>
-                                        @php $meds = is_array($prescription->medications) ? $prescription->medications : json_decode($prescription->medications, true); @endphp
-                                        @if(is_array($meds))
-                                            <div class="mt-1">
-                                                @foreach(array_slice($meds, 0, 2) as $med)
-                                                    <span class="badge bg-light text-dark me-1">{{ $med['name'] ?? '' }}</span>
-                                                @endforeach
-                                                @if(count($meds) > 2)
-                                                    <span class="badge bg-secondary">+{{ count($meds) - 2 }}</span>
-                                                @endif
-                                            </div>
-                                        @endif
+
+            <!-- Main Content -->
+            <div class="col-lg-9">
+                <!-- Navigation Tabs -->
+                <div class="custom-tabs">
+                    <button class="tab-btn active" onclick="switchTab(event, 'overview')">
+                        <i class="fas fa-th-large"></i> Aperçu
+                    </button>
+                    <button class="tab-btn" onclick="switchTab(event, 'history')">
+                        <i class="fas fa-history"></i> Historique
+                    </button>
+                    <button class="tab-btn" onclick="switchTab(event, 'appointments')">
+                        <i class="fas fa-calendar-check"></i> Rendez-vous
+                    </button>
+                    <button class="tab-btn" onclick="switchTab(event, 'prescriptions')">
+                        <i class="fas fa-pills"></i> Ordonnances
+                    </button>
+                    <button class="tab-btn" onclick="switchTab(event, 'docs')">
+                        <i class="fas fa-file-medical"></i> Documents
+                    </button>
+                    </div>
+
+                    <!-- Tab: Overview -->
+                    <div id="overview" class="tab-content">
+                    <div class="row g-4">
+                        <div class="col-md-7">
+                            <div class="medical-card h-100">
+                                <h5 class="card-title"><i class="fas fa-heartbeat"></i> Signes Vitaux (Dernier Relevé)</h5>
+                                @php $lastC = $patient->consultations->first(); @endphp
+                                <div class="vitals-grid">
+                                    <div class="vital-box">
+                                        <div class="vital-icon">🌡️</div>
+                                        <div class="vital-val">{{ $lastC->temperature ?? '--' }} <small>°C</small></div>
+                                        <div class="vital-lbl">Température</div>
                                     </div>
-                                    <a href="{{ route('prescriptions.pdf', $prescription) }}" class="btn btn-danger btn-sm" target="_blank">
-                                        <i class="fas fa-file-pdf me-1"></i> PDF
-                                    </a>
+                                    <div class="vital-box">
+                                        <div class="vital-icon">❤️</div>
+                                        <div class="vital-val">{{ $lastC->blood_pressure ?? '--' }}</div>
+                                        <div class="vital-lbl">Tension Art.</div>
+                                    </div>
+                                    <div class="vital-box">
+                                        <div class="vital-icon">⚖️</div>
+                                        <div class="vital-val">{{ $lastC->weight ?? $patient->weight ?? '--' }} <small>kg</small></div>
+                                        <div class="vital-lbl">Poids</div>
+                                    </div>
+                                    <div class="vital-box">
+                                        <div class="vital-icon">📏</div>
+                                        <div class="vital-val">{{ $lastC->height ?? $patient->height ?? '--' }} <small>cm</small></div>
+                                        <div class="vital-lbl">Taille</div>
+                                    </div>
+                                </div>
+                                @if($lastC)
+                                    <div class="mt-4 p-3 bg-light rounded-xl border border-dashed">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="badge bg-primary">Dernière Note</span>
+                                            <span class="text-muted extra-small">{{ $lastC->consultation_date->format('d/m/Y') }}</span>
+                                        </div>
+                                        <p class="mb-0 text-main small italic">"{{ Str::limit($lastC->notes, 150) }}"</p>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="medical-card h-100" style="border-left: 5px solid var(--danger);">
+                                <h5 class="card-title text-danger"><i class="fas fa-exclamation-triangle"></i> Alertes Médicales</h5>
+                                <div class="alert-content">
+                                    <label class="text-muted small fw-bold">ALLERGIES</label>
+                                    <div class="p-3 mb-3 bg-danger bg-opacity-10 rounded-xl text-danger fw-bold border border-danger border-opacity-10">
+                                        {{ $patient->allergies ?? 'Aucune allergie connue' }}
+                                    </div>
+
+                                    <label class="text-muted small fw-bold">ANTÉCÉDENTS</label>
+                                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                        <p class="text-muted small mb-0">{{ $patient->medical_history ?? 'Aucun historique renseigné.' }}</p>
+                                    </div>
                                 </div>
                             </div>
-                        @endforeach
+                        </div>
                     </div>
-                @else
-                    <div class="text-center py-4">
-                        <i class="fas fa-prescription fa-3x text-muted mb-3 opacity-25"></i>
-                        <p class="text-muted mb-0">Aucune ordonnance</p>
                     </div>
-                @endif
+
+                    <!-- Tab: History -->
+                    <div id="history" class="tab-content" style="display: none;">
+                    <div class="medical-card">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="card-title mb-0"><i class="fas fa-history"></i> Historique Médical</h5>
+                            <span class="badge bg-primary-lighter text-primary-blue">{{ $patient->consultations->count() }} Visites</span>
+                        </div>
+                        @forelse($patient->consultations as $consult)
+                            <div class="timeline-item">
+                                <div class="timeline-date">{{ $consult->consultation_date->format('d M Y') }}</div>
+                                <div class="timeline-content">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div>
+                                            <h6 class="fw-bold text-main mb-0">Dr. {{ $consult->doctor->user->name ?? 'N/A' }}</h6>
+                                            <span class="text-muted extra-small">{{ $consult->doctor->specialty ?? 'Généraliste' }}</span>
+                                        </div>
+                                        <button class="btn btn-sm bg-white border rounded-xl shadow-sm text-primary-blue" onclick="showConsultationDetails({{ $consult->id }})">
+                                            <i class="fas fa-eye me-1"></i>Détails
+                                        </button>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-md-6 border-end border-opacity-10 border-dark">
+                                            <span class="text-muted extra-small d-block text-uppercase fw-bold">Diagnostic</span>
+                                            <p class="small text-main mb-0">{{ Str::limit($consult->diagnosis, 80) }}</p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <span class="text-muted extra-small d-block text-uppercase fw-bold">Traitement</span>
+                                            <p class="small text-main mb-0">{{ Str::limit($consult->treatment, 80) }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="text-center py-5">
+                                <i class="fas fa-folder-open fa-3x text-slate-200 mb-3"></i>
+                                <p class="text-muted">Aucune consultation enregistrée.</p>
+                            </div>
+                        @endforelse
+                    </div>
+                    </div>
+
+                    <!-- Tab: Appointments -->
+                    <div id="appointments" class="tab-content" style="display: none;">
+                    <div class="medical-card">
+                        <h5 class="card-title"><i class="fas fa-calendar-check"></i> Rendez-vous</h5>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th class="border-0 rounded-start">Date & Heure</th>
+                                        <th class="border-0">Motif</th>
+                                        <th class="border-0">Statut</th>
+                                        <th class="border-0 rounded-end">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($patient->appointments as $apt)
+                                        <tr>
+                                            <td>
+                                                <div class="fw-bold text-main">{{ \Carbon\Carbon::parse($apt->date_time)->format('d/m/Y') }}</div>
+                                                <div class="text-muted small">{{ \Carbon\Carbon::parse($apt->date_time)->format('H:i') }}</div>
+                                            </td>
+                                            <td class="small">{{ $apt->reason ?? 'Consultation générale' }}</td>
+                                            <td>
+                                                @php
+                                                    $statusClass = [
+                                                        'pending' => 'bg-warning text-dark',
+                                                        'confirmed' => 'bg-success',
+                                                        'cancelled' => 'bg-danger',
+                                                        'completed' => 'bg-secondary',
+                                                        'scheduled' => 'bg-info text-white'
+                                                    ][$apt->status] ?? 'bg-light';
+                                                @endphp
+                                                <span class="badge {{ $statusClass }}">{{ ucfirst($apt->status) }}</span>
+                                            </td>
+                                            <td>
+                                                @if($apt->status == 'confirmed' || $apt->status == 'scheduled')
+                                                    <a href="{{ route('doctor.consultations.create') }}?patient={{ $patient->id }}&appointment={{ $apt->id }}" class="btn btn-sm btn-primary rounded-xl">Démarrer</a>
+                                                @else
+                                                    <button class="btn btn-sm btn-light rounded-xl" disabled>Terminé</button>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr><td colspan="4" class="text-center py-4 text-muted">Aucun rendez-vous trouvé.</td></tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    </div>
+                <!-- Tab: Prescriptions -->
+                <div id="prescriptions" class="tab-content" style="display: none;">
+                    <div class="medical-card">
+                        <h5 class="card-title"><i class="fas fa-pills"></i> Ordonnances Émises</h5>
+                        <div class="row g-3">
+                            @forelse($patient->prescriptions as $presc)
+                                <div class="col-md-6">
+                                    <div class="p-3 border rounded-24 d-flex justify-content-between align-items-center hover-shadow transition-all">
+                                        <div>
+                                            <div class="fw-bold text-main">Ordonnance #{{ $presc->id }}</div>
+                                            <div class="text-muted small">Émise le : {{ $presc->created_at->format('d/m/Y') }}</div>
+                                        </div>
+                                        <a href="{{ route('prescriptions.pdf', $presc) }}" target="_blank" class="btn btn-icon btn-light text-danger rounded-xl">
+                                            <i class="fas fa-file-pdf"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="col-12 text-center py-5 text-muted">Aucune ordonnance trouvée.</div>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Documents -->
+                <div id="docs" class="tab-content" style="display: none;">
+                    <div class="medical-card">
+                        <h5 class="card-title"><i class="fas fa-file-medical"></i> Documents & Imagerie</h5>
+                        <div class="row g-3">
+                            @forelse($patient->documents as $doc)
+                                <div class="col-md-6">
+                                    <div class="p-3 border rounded-24 d-flex justify-content-between align-items-center hover-shadow transition-all">
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-3 p-2 bg-light rounded-circle text-primary">
+                                                <i class="fas {{ $doc->type_icon }} fa-lg"></i>
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold text-main">{{ $doc->title }}</div>
+                                                <div class="text-muted small">{{ $doc->type_label }} • {{ $doc->created_at->format('d/m/Y') }}</div>
+                                            </div>
+                                        </div>
+                                        <a href="{{ Storage::url($doc->file_path) }}" target="_blank" class="btn btn-icon btn-light text-primary rounded-xl">
+                                            <i class="fas fa-external-link-alt"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="col-12 text-center py-5">
+                                    <i class="fas fa-folder-open fa-3x text-slate-200 mb-3"></i>
+                                    <p class="text-muted">Aucun document trouvé pour ce patient.</p>
+                                </div>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
 </div>
 
-<!-- ========== MODAL DÉTAILS CONSULTATION ========== -->
-<div class="modal fade" id="consultationModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+<!-- Modal Détails Consultation (Re-used) -->
+<div class="modal fade modal-medical" id="consultationModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header bg-info text-white">
-                <h5 class="modal-title"><i class="fas fa-stethoscope me-2"></i> Détails de la consultation</h5>
+            <div class="modal-header">
+                <h5 class="modal-title text-white">
+                    <i class="fas fa-stethoscope me-2"></i> Détails de la consultation
+                </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4" id="consultationDetails">
-                <div class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Chargement...</span>
-                    </div>
-                    <p class="mt-3 text-muted">Chargement des détails...</p>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
-                <button type="button" class="btn btn-primary" onclick="window.print()">Imprimer</button>
+                <!-- Content injected via JS -->
             </div>
         </div>
     </div>
 </div>
 
 <script>
+function switchTab(evt, tabName) {
+    var i, tabcontent, tablinks;
+    tabcontent = document.getElementsByClassName("tab-content");
+    for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+    }
+    tablinks = document.getElementsByClassName("tab-btn");
+    for (i = 0; i < tablinks.length; i++) {
+        tablinks[i].classList.remove("active");
+    }
+    document.getElementById(tabName).style.display = "block";
+    evt.currentTarget.classList.add("active");
+}
+
 function showConsultationDetails(id) {
     const modal = new bootstrap.Modal(document.getElementById('consultationModal'));
     modal.show();
-    
+
     const detailsDiv = document.getElementById('consultationDetails');
-    detailsDiv.innerHTML = `
-        <div class="text-center py-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Chargement...</span>
-            </div>
-            <p class="mt-3 text-muted">Chargement des détails...</p>
-        </div>
-    `;
-    
+    detailsDiv.innerHTML = `<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div></div>`;
+
     fetch(`/consultations/${id}/details`)
-        .then(response => {
-            if (!response.ok) throw new Error('Erreur HTTP ' + response.status);
-            return response.json();
-        })
+        .then(response => response.json())
         .then(data => {
-            const date = new Date(data.consultation_date);
-            const formattedDate = date.toLocaleDateString('fr-FR');
-            
-            let html = `
-                <div class="row g-4">
-                    <div class="col-md-6">
-                        <div class="card bg-light border-0">
-                            <div class="card-body">
-                                <h6 class="text-primary mb-3"><i class="fas fa-calendar-alt me-2"></i>Informations générales</h6>
-                                <p><strong>📅 Date:</strong> ${formattedDate || 'N/A'}</p>
-                                <p><strong>👨‍⚕️ Médecin:</strong> Dr. ${data.doctor?.user?.name || 'N/A'}</p>
-                                <p><strong>🏥 Spécialité:</strong> ${data.doctor?.specialty || 'N/A'}</p>
-                            </div>
+            const date = new Date(data.consultation_date).toLocaleDateString('fr-FR');
+            detailsDiv.innerHTML = `
+                <div class="p-3">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-primary mb-3">Infos Visite</h6>
+                            <p class="mb-1 text-muted small">DATE</p><p class="fw-bold">${date}</p>
+                            <p class="mb-1 text-muted small">MÉDECIN</p><p class="fw-bold">Dr. ${data.doctor?.user?.name || 'N/A'}</p>
                         </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card bg-light border-0">
-                            <div class="card-body">
-                                <h6 class="text-primary mb-3"><i class="fas fa-heartbeat me-2"></i>Signes vitaux</h6>
-                                <div class="row">
-                                    <div class="col-6">
-                                        <p><strong>⚖️ Poids:</strong> ${data.weight ? data.weight + ' kg' : 'N/A'}</p>
-                                        <p><strong>📏 Taille:</strong> ${data.height ? data.height + ' cm' : 'N/A'}</p>
-                                    </div>
-                                    <div class="col-6">
-                                        <p><strong>❤️ Tension:</strong> ${data.blood_pressure || 'N/A'}</p>
-                                        <p><strong>🌡️ Température:</strong> ${data.temperature ? data.temperature + ' °C' : 'N/A'}</p>
-                                    </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-primary mb-3">Vitals</h6>
+                            <div class="d-flex flex-wrap gap-3">
+                                <div class="p-2 border rounded-xl text-center flex-fill">
+                                    <div class="small text-muted">Tension</div><div class="fw-bold">${data.blood_pressure || '--'}</div>
+                                </div>
+                                <div class="p-2 border rounded-xl text-center flex-fill">
+                                    <div class="small text-muted">Temp.</div><div class="fw-bold">${data.temperature || '--'}°C</div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                
-                <div class="row mt-4">
-                    <div class="col-12">
-                        <div class="card border-0" style="background: #e8f4f8;">
-                            <div class="card-body">
-                                <h6 class="text-primary mb-2"><i class="fas fa-notes-medical me-2"></i>Symptômes</h6>
-                                <p class="mb-0">${data.symptoms || 'Non renseignés'}</p>
-                            </div>
-                        </div>
+                    <div class="mb-3">
+                        <h6 class="fw-bold text-main">Symptômes</h6>
+                        <div class="p-3 bg-light rounded-xl">${data.symptoms || 'Non renseignés'}</div>
                     </div>
-                </div>
-                
-                <div class="row mt-3">
-                    <div class="col-12">
-                        <div class="card border-0" style="background: #e8f5e9;">
-                            <div class="card-body">
-                                <h6 class="text-success mb-2"><i class="fas fa-clipboard-list me-2"></i>Diagnostic</h6>
-                                <p class="mb-0">${data.diagnosis || 'Non renseigné'}</p>
-                            </div>
-                        </div>
+                    <div class="mb-3">
+                        <h6 class="fw-bold text-main">Diagnostic</h6>
+                        <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-100">${data.diagnosis || 'Non renseigné'}</div>
                     </div>
-                </div>
-                
-                <div class="row mt-3">
-                    <div class="col-12">
-                        <div class="card border-0" style="background: #fff8e1;">
-                            <div class="card-body">
-                                <h6 class="text-warning mb-2"><i class="fas fa-pills me-2"></i>Traitement prescrit</h6>
-                                <p class="mb-0">${data.treatment || 'Non renseigné'}</p>
-                            </div>
-                        </div>
+                    <div class="mb-0">
+                        <h6 class="fw-bold text-main">Traitement</h6>
+                        <div class="p-3 bg-amber-50 rounded-xl border border-amber-100">${data.treatment || 'Non renseigné'}</div>
                     </div>
-                </div>
-                
-                <div class="row mt-3">
-                    <div class="col-12">
-                        <div class="card border-0" style="background: #f3e5f5;">
-                            <div class="card-body">
-                                <h6 class="text-purple mb-2"><i class="fas fa-comment-dots me-2"></i>Notes supplémentaires</h6>
-                                <p class="mb-0">${data.notes || 'Non renseignées'}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            detailsDiv.innerHTML = html;
-        })
-        .catch(error => {
-            console.error('Erreur:', error);
-            detailsDiv.innerHTML = `
-                <div class="alert alert-danger text-center m-3">
-                    <i class="fas fa-exclamation-triangle fa-2x mb-2 d-block"></i>
-                    <strong>Erreur de chargement</strong><br>
-                    <small>${error.message}</small>
-                    <button class="btn btn-outline-danger btn-sm mt-3" onclick="location.reload()">
-                        <i class="fas fa-sync me-2"></i>Réessayer
-                    </button>
                 </div>
             `;
         });

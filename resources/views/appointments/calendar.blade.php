@@ -11,9 +11,6 @@
     <div class="card">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h4 class="mb-0"><i class="fas fa-calendar-alt"></i> Calendrier des rendez-vous</h4>
-            <a href="{{ route('appointments.create') }}" class="btn btn-light">
-                <i class="fas fa-plus"></i> Nouveau rendez-vous
-            </a>
         </div>
         <div class="card-body">
             <div id='calendar'></div>

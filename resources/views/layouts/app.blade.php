@@ -1,1415 +1,939 @@
 <!DOCTYPE html>
-<html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() == 'ar' ? 'rtl' : 'ltr' }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'HealthSys')</title>
+    <title>{{ config('app.name', 'HealthSys') }}</title>
 
-    <!-- CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
-    
+    <!-- Tailwind Engine -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
     <style>
+        /* ===== GLOBAL PREFERENCES ===== */
         :root {
-            --primary-color: #1a5f7a;
-            --primary-dark: #0d3b4f;
-            --primary-light: #e8f4f8;
-            --secondary-color: #f0b429;
-            --success-color: #28a745;
-            --danger-color: #dc3545;
-            --warning-color: #ffc107;
-            --info-color: #17a2b8;
-            --dark-color: #2c3e50;
-            --light-color: #f8f9fc;
-            --gray-100: #f8f9fc;
-            --gray-200: #eaecf4;
-            --gray-300: #dddfeb;
-            --gray-400: #d1d3e2;
-            --gray-500: #b7b9cc;
-            --gray-600: #858796;
-            --gray-700: #6e707e;
-            --gray-800: #5a5c69;
-            --gray-900: #3a3b45;
-            --shadow-sm: 0 0.125rem 0.25rem 0 rgba(58,59,69,0.2);
-            --shadow-md: 0 0.5rem 1rem 0 rgba(58,59,69,0.15);
-            --shadow-lg: 0 1rem 3rem 0 rgba(58,59,69,0.15);
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --sidebar-bg: linear-gradient(180deg, #03045E 0%, #023E8A 100%);
+            --content-bg: #f5f5f9;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e5e7eb;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        .dark-mode {
+            --content-bg: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
         }
 
-        body {
-            font-family: 'Inter', sans-serif;
-            background: var(--gray-100);
-            color: var(--gray-800);
-            line-height: 1.5;
+        body { 
+            background-color: var(--content-bg) !important; 
+            color: var(--text-main);
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
-        /* RTL Support */
-        body[dir="rtl"] {
-            text-align: right;
+        #topbar { background-color: var(--card-bg) !important; border-bottom-color: var(--border-color) !important; }
+        #content { background-color: var(--content-bg) !important; }
+        .topbar-title { color: var(--text-main) !important; }
+        .topbar-sub { color: var(--text-muted) !important; }
+
+        /* Compact Mode */
+        .compact-mode #content { padding: 16px !important; }
+        .compact-mode .stats-card, .compact-mode .chart-card { padding: 16px !important; }
+        .compact-mode .invoice-table td { padding: 8px 16px !important; }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; overflow: hidden; }
+        body { font-family: 'Inter', sans-serif; background: #f5f5f9; display: flex; }
+        [x-cloak] { display: none !important; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        
-        body[dir="rtl"] .ms-auto {
-            margin-left: 0 !important;
-            margin-right: auto !important;
-        }
-        
-        body[dir="rtl"] .me-auto {
-            margin-right: 0 !important;
-            margin-left: auto !important;
-        }
-        
-        body[dir="rtl"] .dropdown-menu-end {
-            right: auto !important;
-            left: 0 !important;
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease forwards;
         }
 
-        /* ========== SIDEBAR ========== */
-        .layout-menu {
-            position: fixed;
+        /* ===== SIDEBAR - تصميم أزرق متناسق ===== */
+        #sidebar {
             width: 280px;
-            height: 100vh;
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-            transition: var(--transition);
-            z-index: 1040;
+            min-width: 280px;
+            background: linear-gradient(180deg, #03045E 0%, #023E8A 100%);
+            display: flex;
+            flex-direction: column;
             overflow-y: auto;
-            box-shadow: var(--shadow-lg);
+            overflow-x: hidden;
         }
+        #sidebar::-webkit-scrollbar { width: 4px; }
+        #sidebar::-webkit-scrollbar-track { background: #023E8A; }
+        #sidebar::-webkit-scrollbar-thumb { background: #00B4D8; border-radius: 4px; }
 
-        body[dir="rtl"] .layout-menu {
-            right: 0;
-            left: auto;
-        }
-
-        .layout-menu::-webkit-scrollbar {
-            width: 5px;
-        }
-
-        .layout-menu::-webkit-scrollbar-track {
-            background: rgba(255,255,255,0.1);
-        }
-
-        .layout-menu::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.3);
-            border-radius: 10px;
-        }
-
-        .app-brand {
-            padding: 1.5rem 1.5rem;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            margin-bottom: 1rem;
-        }
-
-        .navbar-brand {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: white;
-            text-decoration: none;
-            letter-spacing: -0.5px;
-        }
-
-        .navbar-brand span {
-            color: var(--secondary-color);
-        }
-
-        .menu-link {
+        /* Logo */
+        .sidebar-logo {
             display: flex;
             align-items: center;
-            padding: 0.75rem 1.5rem;
-            color: rgba(255,255,255,0.8);
-            text-decoration: none;
-            transition: var(--transition);
+            gap: 12px;
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .logo-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, #00B4D8, #48CAE4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(0, 180, 216, 0.3);
+        }
+        .logo-text { 
+            font-size: 20px; 
+            font-weight: 800; 
+            color: #ffffff; 
+            letter-spacing: -0.5px; 
+        }
+        .logo-text span { color: #00B4D8; }
+        .logo-sub { 
+            font-size: 10px; 
+            color: #90E0EF; 
+            font-weight: 500; 
+            margin-top: 2px; 
+            letter-spacing: 0.3px;
+        }
+
+        /* Navigation */
+        .nav-section {
+            padding: 20px 16px 8px;
+        }
+        .nav-label {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #90E0EF;
+            padding: 0 12px;
+            margin-bottom: 12px;
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 14px;
             font-weight: 500;
-            font-size: 0.9rem;
-            gap: 0.75rem;
+            color: #CAF0F8;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            margin-bottom: 4px;
+        }
+        .nav-item i { 
+            width: 20px; 
+            text-align: center; 
+            font-size: 16px; 
+            color: #90E0EF;
+            transition: color 0.2s;
+        }
+        .nav-item:hover { 
+            background: rgba(255, 255, 255, 0.1); 
+            color: #ffffff; 
+        }
+        .nav-item:hover i { 
+            color: #00B4D8; 
+        }
+        .nav-item.active { 
+            background: rgba(0, 180, 216, 0.2); 
+            color: #ffffff; 
+            font-weight: 600; 
+        }
+        .nav-item.active i { 
+            color: #00B4D8; 
         }
 
-        body[dir="rtl"] .menu-link {
-            padding: 0.75rem 1.5rem;
+        /* User Card */
+        .sidebar-user {
+            margin-top: auto;
+            padding: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
-
-        .menu-link:hover {
-            background: rgba(255,255,255,0.1);
-            color: white;
+        .user-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 12px 14px;
         }
-        
-        body[dir="rtl"] .menu-link:hover {
-            padding-right: 2rem;
-            padding-left: 1.5rem;
+        .user-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, #00B4D8, #48CAE4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 700;
+            color: #ffffff;
+            box-shadow: 0 2px 8px rgba(0, 180, 216, 0.2);
         }
-        
-        body[dir="ltr"] .menu-link:hover {
-            padding-left: 2rem;
-            padding-right: 1.5rem;
+        .user-name { 
+            font-size: 14px; 
+            font-weight: 700; 
+            color: #ffffff; 
+            line-height: 1.2; 
         }
-
-        .menu-link.active {
-            background: var(--secondary-color);
-            color: var(--primary-dark);
-            border-left: 4px solid white;
+        .user-role { 
+            font-size: 11px; 
+            color: #90E0EF; 
+            margin-top: 3px; 
+            font-weight: 500;
         }
-        
-        body[dir="rtl"] .menu-link.active {
-            border-left: none;
-            border-right: 4px solid white;
-        }
-
-        .menu-icon {
-            width: 24px;
-            font-size: 1.1rem;
-            text-align: center;
-        }
-
-        .menu-header {
-            padding: 1rem 1.5rem 0.5rem;
-            color: rgba(255,255,255,0.5);
-            font-size: 0.7rem;
-            font-weight: 600;
-            letter-spacing: 1px;
-        }
-
-        /* ========== LAYOUT PAGE ========== */
-        .layout-page {
-            margin-left: 280px;
-            transition: var(--transition);
-        }
-        
-        body[dir="rtl"] .layout-page {
-            margin-left: 0;
-            margin-right: 280px;
-        }
-
-        /* ========== NAVBAR ========== */
-        .layout-navbar {
-            background: white;
-            padding: 0.75rem 1.5rem;
-            box-shadow: var(--shadow-sm);
-            position: sticky;
-            top: 0;
-            z-index: 1030;
-        }
-
-        /* Style pour la barre de recherche avec autocomplete */
-        .search-wrapper {
-            position: relative;
-            width: 280px;
-        }
-
-        .search-input {
-            background: var(--gray-100);
+        .logout-btn {
+            margin-left: auto;
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            flex-shrink: 0;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ff6b6b;
             border: none;
-            border-radius: 30px;
-            padding: 0.5rem 1rem 0.5rem 2.5rem;
-            font-size: 0.85rem;
-            width: 100%;
-            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
         }
-        
-        body[dir="rtl"] .search-input {
-            padding: 0.5rem 2.5rem 0.5rem 1rem;
-        }
-
-        .search-input:focus {
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(26,95,122,0.1);
-            background: white;
+        .logout-btn:hover { 
+            background: rgba(255, 107, 107, 0.2); 
+            color: #ff8888;
         }
 
-        .search-icon {
+        /* ===== MAIN CONTENT ===== */
+        #main-wrap {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        /* Top Bar */
+        #topbar {
+            background: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 0 28px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .topbar-title { 
+            font-size: 18px; 
+            font-weight: 700; 
+            color: #0f172a; 
+        }
+        .topbar-sub { 
+            font-size: 12px; 
+            color: #64748b; 
+            margin-top: 2px; 
+        }
+
+        .topbar-right { 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+        }
+        .icon-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        .icon-btn:hover { 
+            background: #eef2ff; 
+            color: #023E8A; 
+            border-color: #cbd5e1;
+        }
+        .notif-dot {
             position: absolute;
-            left: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--gray-500);
-            font-size: 0.9rem;
-            z-index: 1;
-        }
-        
-        body[dir="rtl"] .search-icon {
-            left: auto;
-            right: 12px;
+            top: 8px;
+            right: 8px;
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            border: 2px solid white;
         }
 
-        .search-results {
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #cbd5e1;
+        }
+
+        .date-chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #475569;
+        }
+
+        /* ===== GLOBAL SEARCH ===== */
+        .search-container {
+            flex: 1;
+            max-width: 450px;
+            margin: 0 20px;
+            position: relative;
+        }
+        .search-wrapper {
+            display: flex;
+            align-items: center;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 0 16px;
+            height: 42px;
+            transition: all 0.2s;
+        }
+        .search-wrapper:focus-within {
+            background: white;
+            border-color: #00B4D8;
+            box-shadow: 0 0 0 4px rgba(0, 180, 216, 0.1);
+        }
+        .search-input-global {
+            background: transparent;
+            border: none;
+            flex: 1;
+            padding: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #1e293b;
+            outline: none;
+        }
+        .search-results-dropdown {
             position: absolute;
             top: 100%;
             left: 0;
             right: 0;
             background: white;
-            border-radius: 12px;
-            box-shadow: var(--shadow-md);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
             margin-top: 8px;
-            z-index: 1050;
-            display: none;
-            max-height: 400px;
-            overflow-y: auto;
+            z-index: 1000;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
         }
-
-        .search-results .list-group-item {
-            border: none;
-            border-radius: 0;
+        .search-result-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
             padding: 12px 16px;
-            transition: var(--transition);
+            text-decoration: none;
+            transition: all 0.2s;
+            border-bottom: 1px solid #f1f5f9;
         }
-
-        .search-results .list-group-item:first-child {
-            border-radius: 12px 12px 0 0;
-        }
-
-        .search-results .list-group-item:last-child {
-            border-radius: 0 0 12px 12px;
-        }
-
-        .search-results .list-group-item:hover {
-            background: var(--gray-100);
-        }
-
-        .search-result-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
+        .search-result-item:last-child { border-bottom: none; }
+        .search-result-item:hover { background: #f8fafc; }
+        .result-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: #eef2ff;
+            color: #4f46e5;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-right: 12px;
-        }
-        
-        body[dir="rtl"] .search-result-icon {
-            margin-right: 0;
-            margin-left: 12px;
+            font-size: 14px;
         }
 
-        .search-result-icon.patient {
-            background: rgba(26, 95, 122, 0.1);
-            color: var(--primary-color);
+        /* Content area */
+        #content { 
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 28px; 
+            background: #f8fafc;
         }
+        #content::-webkit-scrollbar { width: 6px; }
+        #content::-webkit-scrollbar-track { background: #e2e8f0; border-radius: 3px; }
+        #content::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
 
-        .search-result-icon.appointment {
-            background: rgba(255, 193, 7, 0.1);
-            color: var(--warning-color);
-        }
-
-        .search-result-icon.doctor {
-            background: rgba(40, 167, 69, 0.1);
-            color: var(--success-color);
-        }
-
-        .search-result-icon.prescription {
-            background: rgba(220, 53, 69, 0.1);
-            color: var(--danger-color);
-        }
-
-        .notification-badge {
-            position: absolute;
-            top: -5px;
-            right: -8px;
-            background: var(--danger-color);
-            color: white;
-            font-size: 0.65rem;
-            padding: 0.2rem 0.4rem;
-            border-radius: 50%;
-            font-weight: 600;
-        }
-        
-        body[dir="rtl"] .notification-badge {
-            right: auto;
-            left: -8px;
-        }
-
-        /* ========== CONTENT ========== */
-        .content-wrapper {
-            padding: 1.5rem;
-            min-height: calc(100vh - 60px);
-        }
-
-        .page-title {
-            margin-bottom: 1.5rem;
-        }
-
-        .page-title h1 {
-            font-size: 1.75rem;
-            font-weight: 600;
-            color: var(--gray-800);
-            margin-bottom: 0.25rem;
-        }
-
-        .page-title p {
-            color: var(--gray-500);
-            font-size: 0.85rem;
-        }
-
-        /* ========== CARDS ========== */
-        .card {
-            border: none;
-            border-radius: 1rem;
-            box-shadow: var(--shadow-sm);
-            transition: var(--transition);
-            background: white;
-        }
-
-        .card:hover {
-            transform: translateY(-3px);
-            box-shadow: var(--shadow-md);
-        }
-
-        .card-header {
-            background: white;
-            border-bottom: 1px solid var(--gray-200);
-            padding: 1rem 1.25rem;
-            font-weight: 600;
-            border-radius: 1rem 1rem 0 0;
-        }
-
-        /* ========== STATS CARDS ========== */
-        .stat-card {
-            background: white;
-            border-radius: 1rem;
-            padding: 1.25rem;
-            transition: var(--transition);
-            border-left: 4px solid var(--primary-color);
-        }
-        
-        body[dir="rtl"] .stat-card {
-            border-left: none;
-            border-right: 4px solid var(--primary-color);
-        }
-
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-md);
-        }
-
-        .stat-icon {
-            width: 50px;
-            height: 50px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-        }
-
-        .stat-value {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--gray-800);
-            line-height: 1.2;
-        }
-
-        /* ========== BUTTONS ========== */
-        .btn-primary-custom {
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-            color: white;
-            border: none;
-            padding: 0.6rem 1.25rem;
-            border-radius: 0.5rem;
-            font-weight: 500;
-            transition: var(--transition);
-        }
-
-        .btn-primary-custom:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(26,95,122,0.3);
-        }
-
-        /* ========== FOOTER ========== */
-        .footer {
-            background: white;
-            padding: 1rem 1.5rem;
-            text-align: center;
-            border-top: 1px solid var(--gray-200);
-            font-size: 0.8rem;
-            color: var(--gray-500);
-        }
-
-        /* ========== RESPONSIVE ========== */
-        @media (max-width: 992px) {
-            .layout-menu {
-                transform: translateX(-100%);
-            }
-            
-            body[dir="rtl"] .layout-menu {
-                transform: translateX(100%);
-            }
-            
-            .layout-menu.open {
-                transform: translateX(0);
-            }
-            
-            .layout-page {
-                margin-left: 0;
-            }
-            
-            body[dir="rtl"] .layout-page {
-                margin-right: 0;
-            }
-            
-            .search-wrapper {
-                width: 200px;
-            }
-        }
-
+        /* Responsive */
         @media (max-width: 768px) {
-            .stat-value {
-                font-size: 1.4rem;
+            #sidebar {
+                position: fixed;
+                z-index: 1000;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                height: 100vh;
             }
-            
-            .page-title h1 {
-                font-size: 1.3rem;
-            }
-            
-            .search-wrapper {
-                display: none;
-            }
-        }
-
-        /* ========== ANIMATIONS ========== */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .animate-fadeInUp {
-            animation: fadeInUp 0.5s ease forwards;
-        }
-        
-        /* ========== MODE SOMBRE GLOBAL ========== */
-        body.dark-mode {
-            background-color: #1a1a2e;
-            color: #e0e0e0;
-        }
-        
-        body.dark-mode .card {
-            background-color: #16213e;
-            border-color: #0f3460;
-            color: #e0e0e0;
-        }
-        
-        body.dark-mode .card-header {
-            background-color: #0f3460;
-            border-bottom-color: #1a5f7a;
-            color: #e0e0e0;
-        }
-        
-        body.dark-mode .card-body {
-            color: #e0e0e0;
-        }
-        
-        body.dark-mode .table {
-            color: #e0e0e0;
-        }
-        
-        body.dark-mode .table thead th {
-            background-color: #0f3460;
-            color: #e0e0e0;
-            border-color: #1a5f7a;
-        }
-        
-        body.dark-mode .table tbody td {
-            border-color: #0f3460;
-            color: #d0d0d0;
-        }
-        
-        body.dark-mode .table tbody tr:hover {
-            background-color: #1a2a4a;
-        }
-        
-        body.dark-mode .form-control,
-        body.dark-mode .form-select {
-            background-color: #0f3460;
-            color: #e0e0e0;
-            border-color: #1a5f7a;
-        }
-        
-        body.dark-mode .form-control:focus,
-        body.dark-mode .form-select:focus {
-            background-color: #1a3a6a;
-            color: #e0e0e0;
-            border-color: #f0b429;
-            box-shadow: 0 0 0 0.2rem rgba(240, 180, 41, 0.25);
-        }
-        
-        body.dark-mode .form-label {
-            color: #e0e0e0;
-        }
-        
-        body.dark-mode .input-group-text {
-            background-color: #0f3460;
-            color: #e0e0e0;
-            border-color: #1a5f7a;
-        }
-        
-        body.dark-mode .btn-outline-secondary {
-            color: #e0e0e0;
-            border-color: #1a5f7a;
-        }
-        
-        body.dark-mode .btn-outline-secondary:hover {
-            background-color: #1a5f7a;
-            color: white;
-        }
-        
-        body.dark-mode .list-group-item {
-            background-color: #16213e;
-            color: #e0e0e0;
-            border-color: #0f3460;
-        }
-        
-        body.dark-mode .list-group-item:hover {
-            background-color: #1a2a4a;
-        }
-        
-        body.dark-mode .search-results {
-            background-color: #16213e;
-            border-color: #0f3460;
-        }
-        
-        body.dark-mode .search-results .list-group-item {
-            color: #e0e0e0;
-        }
-        
-        body.dark-mode .search-results .list-group-item:hover {
-            background-color: #1a2a4a;
-        }
-        
-        body.dark-mode .alert {
-            background-color: #0f3460;
-            color: #e0e0e0;
-            border-color: #1a5f7a;
-        }
-        
-        body.dark-mode .alert-success {
-            background-color: #0a2a1a;
-            color: #90ee90;
-            border-color: #28a745;
-        }
-        
-        body.dark-mode .alert-danger {
-            background-color: #3a1a1a;
-            color: #ff9999;
-            border-color: #dc3545;
-        }
-        
-        body.dark-mode .alert-warning {
-            background-color: #3a2a1a;
-            color: #ffcc80;
-            border-color: #ffc107;
-        }
-        
-        body.dark-mode .alert-info {
-            background-color: #1a2a3a;
-            color: #80d4ff;
-            border-color: #17a2b8;
-        }
-        
-        body.dark-mode .modal-content {
-            background-color: #16213e;
-            color: #e0e0e0;
-            border-color: #0f3460;
-        }
-        
-        body.dark-mode .modal-header {
-            border-bottom-color: #0f3460;
-        }
-        
-        body.dark-mode .modal-footer {
-            border-top-color: #0f3460;
-        }
-        
-        body.dark-mode .dropdown-menu {
-            background-color: #16213e;
-            color: #e0e0e0;
-            border-color: #0f3460;
-        }
-        
-        body.dark-mode .dropdown-item {
-            color: #e0e0e0;
-        }
-        
-        body.dark-mode .dropdown-item:hover {
-            background-color: #1a5f7a;
-            color: white;
-        }
-        
-        body.dark-mode .nav-link {
-            color: rgba(255, 255, 255, 0.8);
-        }
-        
-        body.dark-mode .nav-link:hover {
-            color: white;
-        }
-        
-        body.dark-mode .navbar {
-            background-color: #0d3b4f !important;
-        }
-        
-        body.dark-mode .footer {
-            background-color: #0f3460;
-            color: #e0e0e0;
-            border-top-color: #1a5f7a;
-        }
-        
-        body.dark-mode .bg-white {
-            background-color: #16213e !important;
-        }
-        
-        body.dark-mode .text-muted {
-            color: #aaa !important;
-        }
-        
-        body.dark-mode .border {
-            border-color: #0f3460 !important;
-        }
-        
-        body.dark-mode .border-bottom {
-            border-bottom-color: #0f3460 !important;
-        }
-        
-        body.dark-mode .shadow-sm {
-            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.5) !important;
-        }
-        
-        /* Sidebar en mode sombre */
-        body.dark-mode .layout-menu {
-            background: linear-gradient(135deg, #0d3b4f 0%, #061a24 100%);
-        }
-        
-        body.dark-mode .menu-link {
-            color: rgba(255, 255, 255, 0.7);
-        }
-        
-        body.dark-mode .menu-link:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-        }
-        
-        body.dark-mode .menu-link.active {
-            background: #f0b429;
-            color: #0d3b4f;
-        }
-        
-        /* Badges en mode sombre */
-        body.dark-mode .badge.bg-primary {
-            background-color: #1a5f7a !important;
-        }
-        
-        body.dark-mode .badge.bg-success {
-            background-color: #0a5a2a !important;
-        }
-        
-        body.dark-mode .badge.bg-warning {
-            background-color: #8a6a0a !important;
-            color: #e0e0e0;
-        }
-        
-        body.dark-mode .badge.bg-danger {
-            background-color: #8a1a1a !important;
-        }
-        
-        body.dark-mode .badge.bg-info {
-            background-color: #0a5a6a !important;
-        }
-        
-        /* Progress bar en mode sombre */
-        body.dark-mode .progress {
-            background-color: #0f3460;
-        }
-        
-        body.dark-mode .progress-bar {
-            background-color: #1a5f7a;
-        }
-
-        /* Animations pour les toasts */
-        @keyframes slideInRight {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
+            #sidebar.mobile-open {
                 transform: translateX(0);
-                opacity: 1;
+                box-shadow: 4px 0 20px rgba(0, 0, 0, 0.2);
+            }
+            .mobile-menu-btn {
+                display: flex !important;
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                z-index: 1001;
+                background: #023E8A;
+                border: none;
+                border-radius: 50%;
+                width: 50px;
+                height: 50px;
+                color: white;
+                font-size: 20px;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(2, 62, 138, 0.3);
             }
         }
-        @keyframes slideOutRight {
-            from {
-                transform: translateX(0);
-                opacity: 1;
-            }
-            to {
-                transform: translateX(100%);
-                opacity: 0;
-            }
+        
+        .mobile-menu-btn {
+            display: none;
         }
     </style>
-    
-    @stack('styles')
+    <script>
+        // Apply preferences immediately to avoid flickering
+        (function() {
+            const saved = localStorage.getItem('healthsys_settings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                if (settings.darkMode) document.documentElement.classList.add('dark-mode');
+                if (settings.compact) document.documentElement.classList.add('compact-mode');
+            }
+        })();
+    </script>
+    @yield('styles')
 </head>
+<body class="font-sans text-slate-900 antialiased h-full">
 
-<body>
-<div class="layout-wrapper">
-    <div class="layout-container">
+<!-- Mobile Menu Toggle Button -->
+<button class="mobile-menu-btn" id="mobileMenuToggle">
+    <i class="fas fa-bars"></i>
+</button>
 
-        <!-- SIDEBAR -->
-        <aside id="layout-menu" class="layout-menu">
-            <div class="app-brand">
-                <a class="navbar-brand" href="{{ route('dashboard') }}">
-                    <i class="fas fa-heartbeat me-2"></i>Health<span>Sys</span>
+<!-- ===== SIDEBAR ===== -->
+<aside id="sidebar">
+    <!-- Logo -->
+    <div class="sidebar-logo">
+        <div class="logo-icon">
+            <i class="fa-solid fa-heart-pulse" style="color:white;font-size:18px;"></i>
+        </div>
+        <div>
+            <div class="logo-text">Health<span>Sys</span></div>
+            <div class="logo-sub">Gestion médicale</div>
+        </div>
+    </div>
+
+    @php $role = auth()->user()->role; @endphp
+
+    <!-- Main Navigation -->
+    <div class="nav-section">
+        <div class="nav-label">Principal</div>
+
+        <a href="{{ route('dashboard') }}"
+           class="nav-item {{ request()->routeIs('dashboard') || request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+            <i class="fa-solid fa-chart-pie"></i> Tableau de bord
+        </a>
+
+        @if($role === 'chef_medecine')
+            <a href="{{ route('admin.doctors.index') }}"
+               class="nav-item {{ request()->routeIs('admin.doctors.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-user-doctor"></i> Médecins
+            </a>
+            <a href="{{ route('secretaire.patients.index') }}"
+               class="nav-item {{ request()->routeIs('secretaire.patients.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-hospital-user"></i> Patients
+            </a>
+            <a href="{{ route('admin.specialites.index') }}"
+               class="nav-item {{ request()->routeIs('admin.specialites.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-stethoscope"></i> Spécialités
+            </a>
+            <a href="{{ route('admin.departements.index') }}"
+               class="nav-item {{ request()->routeIs('admin.departements.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-building-columns"></i> Départements
+            </a>
+            <a href="{{ route('admin.secretaries.index') }}"
+               class="nav-item {{ request()->routeIs('admin.secretaries.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-user-tie"></i> Secrétaires
+            </a>
+
+        @elseif($role === 'doctor')
+            <a href="{{ route('doctor.waiting-room') }}"
+               class="nav-item {{ request()->routeIs('doctor.waiting-room') ? 'active' : '' }}">
+                <i class="fa-solid fa-clock"></i> Salle d'attente
+            </a>
+            <a href="{{ route('doctor.consultations') }}"
+               class="nav-item {{ request()->routeIs('doctor.consultations*') ? 'active' : '' }}">
+                <i class="fa-solid fa-notes-medical"></i> Consultations
+            </a>
+            <a href="{{ route('doctor.patients') }}"
+               class="nav-item {{ request()->routeIs('doctor.patients*') ? 'active' : '' }}">
+                <i class="fa-solid fa-hospital-user"></i> Mes patients
+            </a>
+            <a href="{{ route('doctor.calendar') }}"
+               class="nav-item {{ request()->routeIs('doctor.calendar') ? 'active' : '' }}">
+                <i class="fa-solid fa-calendar-alt"></i> Calendrier
+            </a>
+
+        @elseif($role === 'secretaire' || $role === 'secretary')
+            <a href="{{ route('secretaire.appointments.index') }}"
+               class="nav-item {{ request()->routeIs('secretaire.appointments*') ? 'active' : '' }}">
+                <i class="fa-solid fa-calendar-check"></i> Rendez-vous
+            </a>
+            <a href="{{ route('secretaire.calendar') }}"
+               class="nav-item {{ request()->routeIs('secretaire.calendar') ? 'active' : '' }}">
+                <i class="fa-solid fa-calendar-alt"></i> Calendrier
+            </a>
+            <a href="{{ route('secretaire.patients.index') }}"
+               class="nav-item {{ request()->routeIs('secretaire.patients*') ? 'active' : '' }}">
+                <i class="fa-solid fa-hospital-user"></i> Patients
+            </a>
+            <a href="{{ route('secretaire.waiting-room') }}"
+               class="nav-item {{ request()->routeIs('secretaire.waiting-room') ? 'active' : '' }}">
+                <i class="fa-solid fa-clock"></i> Salle d'attente
+            </a>
+            <a href="{{ route('secretaire.comptabilite') }}"
+               class="nav-item {{ request()->routeIs('secretaire.comptabilite*') ? 'active' : '' }}">
+                <i class="fa-solid fa-chart-line"></i> Comptabilité
+            </a>
+
+        @elseif($role === 'patient')
+            <a href="{{ route('patient.appointments') }}"
+               class="nav-item {{ request()->routeIs('patient.appointments*') ? 'active' : '' }}">
+                <i class="fa-solid fa-calendar-day"></i> Mes rendez-vous
+            </a>
+            <a href="{{ route('patient.medical-record') }}"
+               class="nav-item {{ request()->routeIs('patient.medical-record') ? 'active' : '' }}">
+                <i class="fa-solid fa-folder-medical"></i> Dossier médical
+            </a>
+            <a href="{{ route('patient.prescriptions') }}"
+               class="nav-item {{ request()->routeIs('patient.prescriptions') ? 'active' : '' }}">
+                <i class="fa-solid fa-prescription"></i> Ordonnances
+            </a>
+            <a href="{{ route('patient.invoices') }}"
+               class="nav-item {{ request()->routeIs('patient.invoices') ? 'active' : '' }}">
+                <i class="fa-solid fa-file-invoice-dollar"></i> Factures
+            </a>
+        @endif
+    </div>
+
+    <!-- Account Navigation -->
+    <div class="nav-section">
+        <div class="nav-label">Compte</div>
+        <a href="{{ route('profile.edit') }}"
+           class="nav-item {{ request()->routeIs('profile*') ? 'active' : '' }}">
+            <i class="fa-solid fa-user-gear"></i> Mon profil
+        </a>
+        <a href="{{ route('settings') }}"
+           class="nav-item {{ request()->routeIs('settings') ? 'active' : '' }}">
+            <i class="fa-solid fa-sliders"></i> Paramètres
+        </a>
+    </div>
+
+    <!-- User Card -->
+    <div class="sidebar-user">
+        <div class="user-card">
+            <div class="user-avatar" id="sidebar-avatar-container">
+                @if(auth()->user()->avatar)
+                    <img src="{{ asset('storage/avatars/'.auth()->user()->avatar) }}" class="w-full h-full object-cover rounded-xl shadow-inner">
+                @else
+                    {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                @endif
+            </div>
+            <div style="flex:1; min-width:0;">
+                <div class="user-name">{{ auth()->user()->name }}</div>
+                <div class="user-role">
+                    @if($role === 'chef_medecine') 👨‍⚕️ Chef de médecine
+                    @elseif($role === 'doctor') 👨‍⚕️ Médecin
+                    @elseif($role === 'secretaire') 📋 Secrétaire
+                    @else 👤 Patient @endif
+                </div>
+            </div>
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button type="submit" class="logout-btn" title="Déconnexion">
+                    <i class="fa-solid fa-right-from-bracket fa-sm"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+</aside>
+
+<!-- ===== MAIN CONTENT ===== -->
+<div id="main-wrap">
+    <!-- Top Bar -->
+    <header id="topbar">
+        <div class="flex items-center">
+            <div>
+                <div class="topbar-title">@yield('page_title', 'Tableau de bord')</div>
+                <div class="topbar-sub">@yield('page_subtitle', '')</div>
+            </div>
+        </div>
+
+        <!-- Search Bar Global -->
+        <div class="search-container hidden md:block" x-data="{ 
+            query: '', 
+            results: [], 
+            showResults: false,
+            role: '{{ auth()->user()->role }}',
+            search() {
+                if(this.query.length < 2) {
+                    this.results = [];
+                    this.showResults = false;
+                    return;
+                }
+                fetch(`/search/autocomplete?q=${this.query}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        this.results = data;
+                        this.showResults = true;
+                    });
+            }
+        }">
+            <div class="search-wrapper">
+                <i class="fas fa-search text-slate-400"></i>
+                <input type="text" 
+                       x-model="query" 
+                       @keyup.debounce.300ms="search()" 
+                       @click.away="showResults = false"
+                       @focus="if(results.length > 0) showResults = true"
+                       class="search-input-global" 
+                       :placeholder="role === 'doctor' ? 'Rechercher un de mes patients...' : 
+                                    (role === 'patient' ? 'Rechercher un RDV, ordonnance...' : 'Rechercher partout...')">
+            </div>
+
+            <!-- Autocomplete Results -->
+            <div class="search-results-dropdown" x-show="showResults" x-cloak x-transition>
+                <div class="p-2 border-b border-slate-50 bg-slate-50/50">
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest px-2">Suggestions suggérées</span>
+                </div>
+                <template x-for="result in results" :key="result.label + result.url">
+                    <a :href="result.url" class="search-result-item">
+                        <div class="result-icon">
+                            <i :class="result.icon || 'fas fa-dot-circle'"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-sm font-bold text-slate-800 truncate" x-text="result.label"></div>
+                            <div class="text-[11px] text-slate-400 font-medium truncate" x-text="result.subtitle"></div>
+                        </div>
+                        <i class="fas fa-chevron-right text-[10px] text-slate-300"></i>
+                    </a>
+                </template>
+                <template x-if="results.length === 0 && query.length >= 2">
+                    <div class="p-4 text-center text-sm text-slate-400">Aucun résultat pour "<span x-text="query"></span>"</div>
+                </template>
+                <a x-show="query.length >= 2" :href="`/search?q=${query}`" class="block p-3 text-center text-xs font-black text-indigo-600 bg-indigo-50/50 hover:bg-indigo-100 transition-colors uppercase tracking-widest border-t border-slate-50">
+                    Résultats complets <i class="fas fa-arrow-right ml-1"></i>
                 </a>
             </div>
+        </div>
 
-            <ul class="menu-inner" style="list-style: none; padding-left: 0;">
-            @auth
-                @if(auth()->user()->role == 'chef_medecine')
-                    <li class="menu-item">
-                        <a href="{{ url('/admin') }}" class="menu-link {{ request()->is('admin') ? 'active' : '' }}">
-                            <i class="menu-icon fas fa-chart-line"></i>
-                            <span>{{ __('messages.dashboard') }}</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="{{ url('/admin/doctors') }}" class="menu-link">
-                            <i class="menu-icon fas fa-user-md"></i>
-                            <span>{{ __('messages.doctors') }}</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="{{ url('/admin/secretaries') }}" class="menu-link">
-                            <i class="menu-icon fas fa-user-tie"></i>
-                            <span>Secrétaires</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="{{ url('/secretaire/patients') }}" class="menu-link">
-                            <i class="menu-icon fas fa-users"></i>
-                            <span>{{ __('messages.patients') }}</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="{{ url('/admin/specialites') }}" class="menu-link">
-                            <i class="menu-icon fas fa-stethoscope"></i>
-                            <span>Spécialités</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="{{ url('/admin/departements') }}" class="menu-link">
-                            <i class="menu-icon fas fa-building"></i>
-                            <span>Départements</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="{{ url('/secretaire/appointments') }}" class="menu-link">
-                            <i class="menu-icon fas fa-calendar-alt"></i>
-                            <span>{{ __('messages.appointments') }}</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="{{ url('/admin/reports') }}" class="menu-link">
-                            <i class="menu-icon fas fa-chart-bar"></i>
-                            <span>Rapports</span>
-                        </a>
-                    </li>
+        <div class="topbar-right">
+            <!-- // Notification panel - no redirect -->
+            <!-- Notification Dropdown -->
+            <div x-data="{ 
+                open: false, 
+                unreadCount: {{ auth()->user()->unreadNotifications->count() }},
+                notifications: {{ auth()->user()->notifications()->latest()->take(10)->get()->map(function($n) {
+                    return [
+                        'id' => $n->id,
+                        'title' => $n->data['title'] ?? 'Notification',
+                        'message' => $n->data['message'] ?? '',
+                        'time' => $n->created_at->diffForHumans(),
+                        'unread' => is_null($n->read_at),
+                        'type' => $n->data['type'] ?? 'info',
+                        'icon' => $n->data['icon'] ?? 'fa-bell'
+                    ];
+                })->toJson() }},
+                markAllRead() {
+                    fetch('{{ route('notifications.mark-all') }}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        }
+                    }).then(() => {
+                        this.notifications.forEach(n => n.unread = false);
+                        this.unreadCount = 0;
+                    });
+                },
+                markRead(id) {
+                    let n = this.notifications.find(n => n.id === id);
+                    if(n && n.unread) {
+                        fetch(`/notifications/${id}/mark-as-read`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json'
+                            }
+                        }).then(() => {
+                            n.unread = false;
+                            this.unreadCount--;
+                        });
+                    }
+                }
+            }" class="relative">
+                
+                <!-- Bell Icon & Badge -->
+                <button @click="open = !open" class="icon-btn focus:outline-none transition-transform active:scale-90" title="Notifications">
+                    <i class="fa-solid fa-bell" :class="open ? 'text-indigo-600' : ''" style="font-size:15px;"></i>
+                    <template x-if="unreadCount > 0">
+                        <span class="absolute top-2 right-2 w-4 h-4 bg-rose-500 border-2 border-white rounded-full flex items-center justify-center">
+                            <span class="text-[9px] font-black text-white" x-text="unreadCount"></span>
+                        </span>
+                    </template>
+                </button>
 
-                @elseif(auth()->user()->role == 'doctor')
-                    <li class="menu-item">
-                        <a href="{{ url('/doctor/dashboard') }}" class="menu-link">
-                            <i class="menu-icon fas fa-chart-line"></i>
-                            <span>{{ __('messages.dashboard') }}</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="{{ url('/doctor/waiting-room') }}" class="menu-link">
-                            <i class="menu-icon fas fa-clock"></i>
-                            <span>Salle d'attente</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="{{ url('/doctor/consultations') }}" class="menu-link">
-                            <i class="menu-icon fas fa-stethoscope"></i>
-                            <span>Consultations</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="{{ url('/doctor/history') }}" class="menu-link">
-                            <i class="menu-icon fas fa-history"></i>
-                            <span>Historique</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="{{ url('/doctor/patients') }}" class="menu-link">
-                            <i class="menu-icon fas fa-user-injured"></i>
-                            <span>{{ __('messages.patients') }}</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="{{ url('/doctor/establish-document') }}" class="menu-link">
-                            <i class="menu-icon fas fa-file-alt"></i>
-                            <span>Établir document</span>
-                        </a>
-                    </li>
-
-                @elseif(auth()->user()->role == 'secretaire')
-                    <li class="menu-item">
-                        <a href="{{ url('/secretaire/dashboard') }}" class="menu-link">
-                            <i class="menu-icon fas fa-chart-line"></i>
-                            <span>{{ __('messages.dashboard') }}</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="{{ url('/secretaire/appointments') }}" class="menu-link">
-                            <i class="menu-icon fas fa-calendar-alt"></i>
-                            <span>{{ __('messages.appointments') }}</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="{{ url('/secretaire/patients') }}" class="menu-link">
-                            <i class="menu-icon fas fa-users"></i>
-                            <span>{{ __('messages.patients') }}</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="{{ url('/secretaire/comptabilite') }}" class="menu-link">
-                            <i class="menu-icon fas fa-chart-line"></i>
-                            <span>Comptabilité</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="{{ url('/secretaire/documents') }}" class="menu-link">
-                            <i class="menu-icon fas fa-file-alt"></i>
-                            <span>Documents</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="{{ url('/secretaire/waiting-room') }}" class="menu-link">
-                            <i class="menu-icon fas fa-clock"></i>
-                            <span>Salle d'attente</span>
-                        </a>
-                    </li>
-
-                @elseif(auth()->user()->role == 'patient')
-                    <li class="menu-item">
-                        <a href="{{ url('/patient/dashboard') }}" class="menu-link">
-                            <i class="menu-icon fas fa-home"></i>
-                            <span>Accueil</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="{{ url('/patient/appointments') }}" class="menu-link">
-                            <i class="menu-icon fas fa-calendar-alt"></i>
-                            <span>{{ __('messages.appointments') }}</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="{{ url('/patient/medical-record') }}" class="menu-link">
-                            <i class="menu-icon fas fa-folder-medical"></i>
-                            <span>Dossier médical</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="{{ url('/patient/prescriptions') }}" class="menu-link">
-                            <i class="menu-icon fas fa-prescription"></i>
-                            <span>{{ __('messages.prescriptions') }}</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="{{ url('/patient/invoices') }}" class="menu-link">
-                            <i class="menu-icon fas fa-file-invoice-dollar"></i>
-                            <span>{{ __('messages.invoices') }}</span>
-                        </a>
-                    </li>
-                @endif
-
-                <li class="menu-header">
-                    <span>COMPTE</span>
-                </li>
-                <li class="menu-item">
-                    <a href="{{ url('/profile') }}" class="menu-link">
-                        <i class="menu-icon fas fa-user-circle"></i>
-                        <span>{{ __('messages.profile') }}</span>
-                    </a>
-                </li>
-                <li class="menu-item">
-                    <a href="{{ url('/settings') }}" class="menu-link">
-                        <i class="menu-icon fas fa-cog"></i>
-                        <span>{{ __('messages.settings') }}</span>
-                    </a>
-                </li>
-                <li class="menu-item">
-                    <a href="#" class="menu-link text-danger" 
-                       onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                        <i class="menu-icon fas fa-sign-out-alt"></i>
-                        <span>{{ __('messages.logout') }}</span>
-                    </a>
-                    <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
-                        @csrf
-                    </form>
-                </li>
-            @endauth
-            </ul>
-        </aside>
-
-        <!-- MAIN CONTENT -->
-        <div class="layout-page">
-
-            <!-- NAVBAR -->
-            <nav class="layout-navbar">
-                <div class="d-flex justify-content-between align-items-center w-100">
-                    <div>
-                        <i class="fas fa-bars d-xl-none fs-4" id="mobile-menu-toggle" style="cursor: pointer;"></i>
+                <!-- Panel Dropdown -->
+                <!-- // Click outside closes dropdowns -->
+                <div x-show="open" 
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 scale-95 translate-y-[-10px]"
+                     x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                     x-transition:leave="transition ease-in duration-150"
+                     x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                     x-transition:leave-end="opacity-0 scale-95 translate-y-[-10px]"
+                     @click.away="open = false"
+                     class="absolute right-0 mt-4 w-[360px] max-sm:w-[90vw] bg-white rounded-[20px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-100 z-[100] overflow-hidden"
+                     style="display: none;">
+                    
+                    <!-- Header -->
+                    <div class="px-6 py-5 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
+                        <h3 class="font-extrabold text-slate-800 text-lg tracking-tight">Notifications</h3>
+                        <button @click="markAllRead()" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors">Tout marquer comme lu</button>
                     </div>
 
-                    <div class="d-flex align-items-center gap-3">
-                        <!-- BARRE DE RECHERCHE AVEC AUTOCOMPLETE -->
-                        <div class="search-wrapper">
-                            <i class="fas fa-search search-icon"></i>
-                            <input type="text" id="globalSearchInput" class="search-input" placeholder="{{ __('messages.search') }}...">
-                            <div id="globalSearchResults" class="search-results"></div>
-                        </div>
-                        
-                        <!-- LANGUAGE SWITCHER -->
-                        <div class="dropdown ms-2">
-                            <button class="btn btn-outline-secondary dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown">
-                                @if(session('locale') == 'fr')
-                                    🇫🇷 FR
-                                @elseif(session('locale') == 'ar')
-                                    🇸🇦 AR
-                                @else
-                                    🇬🇧 EN
-                                @endif
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li>
-                                    <a class="dropdown-item d-flex align-items-center gap-2 {{ session('locale') == 'fr' ? 'active' : '' }}" 
-                                       href="{{ url('/lang/fr') }}">
-                                        <span>🇫🇷</span> Français
-                                        @if(session('locale') == 'fr')
-                                            <i class="fas fa-check ms-auto text-success"></i>
-                                        @endif
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item d-flex align-items-center gap-2 {{ session('locale') == 'ar' ? 'active' : '' }}" 
-                                       href="{{ url('/lang/ar') }}">
-                                        <span>🇸🇦</span> العربية
-                                        @if(session('locale') == 'ar')
-                                            <i class="fas fa-check ms-auto text-success"></i>
-                                        @endif
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item d-flex align-items-center gap-2 {{ session('locale') == 'en' ? 'active' : '' }}" 
-                                       href="{{ url('/lang/en') }}">
-                                        <span>🇬🇧</span> English
-                                        @if(session('locale') == 'en')
-                                            <i class="fas fa-check ms-auto text-success"></i>
-                                        @endif
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                        
-                        @php
-                            $notificationRoute = match(auth()->user()->role) {
-                                'doctor', 'chef_medecine' => 'doctor.notifications',
-                                'secretaire' => 'secretaire.dashboard', // Create if needed
-                                'patient' => 'patient.dashboard', // Create if needed
-                                default => '#',
-                            };
-                        @endphp
+                    <!-- List container -->
+                    <div class="max-h-[420px] overflow-y-auto custom-scrollbar">
+                        <template x-if="notifications.length === 0">
+                            <div class="p-10 text-center">
+                                <i class="fa-solid fa-bell-slash text-slate-200 text-4xl mb-3"></i>
+                                <p class="text-slate-400 text-sm font-medium">Aucune notification</p>
+                            </div>
+                        </template>
+                        <template x-for="notif in notifications" :key="notif.id">
+                            <div @click="markRead(notif.id)" 
+                                 class="px-6 py-4 border-b border-slate-50 flex gap-4 transition-all hover:bg-slate-50 cursor-pointer relative"
+                                 :class="notif.unread ? 'bg-indigo-50/30' : ''">
+                                
+                                <!-- Indicator Dot -->
+                                <template x-if="notif.unread">
+                                    <div class="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-indigo-500 rounded-full shadow-[0_0_8px_rgba(79,70,229,0.6)]"></div>
+                                </template>
 
-                        <a class="nav-link position-relative" href="{{ route($notificationRoute) }}">
-                            <i class="fas fa-bell fa-lg text-muted"></i>
-                            @if(auth()->user()->unreadNotifications()->count() > 0)
-                                <span class="notification-badge">{{ auth()->user()->unreadNotifications()->count() }}</span>
-                            @endif
-                        </a>
-                        
-                        <!-- User Dropdown -->
-                        <div class="dropdown">
-                            <a class="d-flex align-items-center text-decoration-none dropdown-toggle" href="#" data-bs-toggle="dropdown" style="cursor: pointer;">
-                                @php
-                                    $avatarImg = asset('assets/img/avatars/user.png');
-                                    if (auth()->user()->avatar) {
-                                        $avatarPath = public_path('assets/img/avatars/' . auth()->user()->avatar);
-                                        if (file_exists($avatarPath)) {
-                                            $avatarImg = asset('assets/img/avatars/' . auth()->user()->avatar);
-                                        }
-                                    }
-                                @endphp
-                                <img src="{{ $avatarImg }}" class="rounded-circle" width="40" height="40" style="object-fit: cover;">
-                                <div class="ms-2 d-none d-md-block">
-                                    <div class="fw-bold">{{ auth()->user()->name }}</div>
-                                    <div class="small text-muted">{{ auth()->user()->email }}</div>
+                                <!-- Avatar / Icon -->
+                                <div class="flex-shrink-0">
+                                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm"
+                                         :class="{
+                                            'bg-gradient-to-tr from-indigo-500 to-blue-500': notif.type === 'info' || notif.type === 'edit',
+                                            'bg-gradient-to-tr from-amber-400 to-orange-500': notif.type === 'warning' || notif.type === 'comment',
+                                            'bg-gradient-to-tr from-emerald-400 to-teal-500': notif.type === 'success' || notif.type === 'invite',
+                                            'bg-gradient-to-tr from-rose-400 to-pink-500': notif.type === 'error',
+                                            'bg-gradient-to-tr from-slate-400 to-slate-600': notif.type === 'file'
+                                         }">
+                                        <i class="fas" :class="notif.icon"></i>
+                                    </div>
                                 </div>
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2">
-                                <li><a class="dropdown-item py-2" href="{{ url('/profile') }}">
-                                    <i class="fas fa-user-circle me-2"></i> {{ __('messages.profile') }}
-                                </a></li>
-                                <li><a class="dropdown-item py-2" href="{{ url('/settings') }}">
-                                    <i class="fas fa-cog me-2"></i> {{ __('messages.settings') }}
-                                </a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li>
-                                    <a class="dropdown-item py-2 text-danger" href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                                        <i class="fas fa-sign-out-alt me-2"></i> {{ __('messages.logout') }}
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
+
+                                <!-- Content -->
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-[13px] leading-snug text-slate-600">
+                                        <span class="font-bold text-slate-900" x-text="notif.title"></span>
+                                        <span x-text="notif.message"></span>
+                                    </p>
+                                    <p class="text-[11px] text-slate-400 mt-1 font-medium" x-text="notif.time"></p>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="p-4 bg-slate-50/50 text-center">
+                        <a href="{{ route('notifications') }}" class="text-[11px] font-black text-slate-400 hover:text-indigo-600 transition-all uppercase tracking-widest">Voir tout l'historique</a>
                     </div>
                 </div>
-            </nav>
-
-            <!-- CONTENT -->
-            <div class="content-wrapper">
-                @if(session('success'))
-                    <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
-                        <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                @endif
-                
-                @if(session('error'))
-                    <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
-                        <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                @endif
-
-                <div class="page-title">
-                    <h1>@yield('title', __('messages.dashboard'))</h1>
-                    <p>@yield('page-title', __('messages.welcome'))</p>
-                </div>
-                
-                @yield('content')
             </div>
 
-            <!-- FOOTER -->
-            <footer class="footer">
-                <div>© {{ date('Y') }} HealthSys — Plateforme de Gestion Médicale</div>
-            </footer>
+            <!-- // Profile circle with dropdown -->
+            <!-- User Profile Dropdown -->
+            <div x-data="{ open: false }" class="relative ml-2">
+                <button @click="open = !open" class="flex items-center focus:outline-none transition-transform active:scale-95">
+                    <div class="w-10 h-10 rounded-full bg-indigo-600 border-2 border-white shadow-md flex items-center justify-center text-white font-bold text-sm overflow-hidden" id="navbar-avatar-container">
+                        @if(auth()->user()->avatar)
+                            <img src="{{ asset('storage/avatars/'.auth()->user()->avatar) }}" class="w-full h-full object-cover">
+                        @else
+                            {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}{{ strtoupper(substr(explode(' ', auth()->user()->name)[1] ?? '', 0, 1)) }}
+                        @endif
+                    </div>
+                </button>
+
+                <!-- Dropdown Menu -->
+                <!-- // Click outside closes dropdowns -->
+                <div x-show="open" 
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 scale-95 translate-y-[-10px]"
+                     x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                     x-transition:leave="transition ease-in duration-75"
+                     x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                     x-transition:leave-end="opacity-0 scale-95 translate-y-[-10px]"
+                     @click.away="open = false"
+                     class="absolute right-0 mt-4 w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 z-[100] py-2 overflow-hidden"
+                     style="display: none;">
+                    
+                    <div class="px-4 py-3 border-b border-slate-50">
+                        <p class="text-xs font-black text-slate-400 uppercase tracking-widest">Connecté en tant que</p>
+                        <p class="text-sm font-bold text-slate-800 truncate">{{ auth()->user()->name }}</p>
+                    </div>
+
+                    <a href="{{ route('profile.edit') }}" class="flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-all">
+                        <i class="fa-solid fa-user-circle opacity-50"></i> Mon profil
+                    </a>
+                    <a href="{{ route('settings') }}" class="flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-all">
+                        <i class="fa-solid fa-gear opacity-50"></i> Paramètres
+                    </a>
+                    
+                    <div class="border-t border-slate-50 mt-1">
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-rose-500 hover:bg-rose-50 transition-all text-left">
+                                <i class="fa-solid fa-right-from-bracket opacity-50"></i> Déconnexion
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="date-chip">
+                <i class="fa-regular fa-calendar" style="color:#0077B6;font-size:13px;"></i>
+                {{ now()->translatedFormat('d M Y') }}
+            </div>
         </div>
+    </header>
+
+    <!-- Page Content -->
+    <div id="content">
+        @if(session('success'))
+            <div class="max-w-7xl mx-auto mb-6 px-4">
+                <div class="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-xl shadow-sm flex items-center gap-3 animate-fade-in">
+                    <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="text-emerald-800 font-semibold text-sm">{{ session('success') }}</div>
+                </div>
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="max-w-7xl mx-auto mb-6 px-4">
+                <div class="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-xl shadow-sm flex items-center gap-3 animate-fade-in">
+                    <div class="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-600">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="text-rose-800 font-semibold text-sm">{{ session('error') }}</div>
+                </div>
+            </div>
+        @endif
+
+        @if($errors->any())
+            <div class="max-w-7xl mx-auto mb-6 px-4">
+                <div class="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-xl shadow-sm animate-fade-in">
+                    <div class="flex items-center gap-3 p-4">
+                        <div class="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-600">
+                            <i class="fas fa-times-circle"></i>
+                        </div>
+                        <div class="text-rose-800 font-bold text-sm">Veuillez corriger les erreurs suivantes :</div>
+                    </div>
+                    <ul class="px-16 pb-4 list-disc text-rose-700 text-xs font-medium">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            </div>
+        @endif
+
+        @yield('content')
     </div>
 </div>
 
-<!-- JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+@if(auth()->user()->role === 'patient')
+    @include('components.chatbot')
+@endif
+
+<script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+<script src="{{ asset('assets/js/chat-bot.js') }}" defer></script>
 <script>
-    // ========== MOBILE MENU TOGGLE ==========
-    const mobileToggle = document.getElementById('mobile-menu-toggle');
-    const sidebar = document.getElementById('layout-menu');
+    // Notification dropdown – no page redirect
+    // Mobile menu toggle
+    const menuToggle = document.getElementById('mobileMenuToggle');
+    const sidebar = document.getElementById('sidebar');
     
-    if (mobileToggle) {
-        mobileToggle.addEventListener('click', function() {
-            sidebar.classList.toggle('open');
-        });
-    }
-    
-    // ========== ANIMATION ON SCROLL ==========
-    const animateElements = document.querySelectorAll('.stat-card, .card');
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('animate-fadeInUp');
-            }
-        });
-    }, { threshold: 0.1 });
-    
-    animateElements.forEach(el => observer.observe(el));
-    
-    // ========== MODE SOMBRE ==========
-    document.addEventListener('DOMContentLoaded', function() {
-        if (localStorage.getItem('darkMode') === 'true') {
-            document.body.classList.add('dark-mode');
-        }
-    });
-    
-    window.toggleDarkMode = function(enabled) {
-        if (enabled) {
-            document.body.classList.add('dark-mode');
-            localStorage.setItem('darkMode', 'true');
-        } else {
-            document.body.classList.remove('dark-mode');
-            localStorage.setItem('darkMode', 'false');
-        }
-    };
-    
-    // ========== FONCTIONS D'IMPRESSION AMÉLIORÉES ==========
-
-    /**
-     * Afficher un toast de notification
-     */
-    function showToast(type, message) {
-        const existingToasts = document.querySelectorAll('.custom-toast');
-        existingToasts.forEach(toast => toast.remove());
-        
-        const toast = document.createElement('div');
-        toast.className = `custom-toast alert alert-${type}`;
-        toast.style.cssText = `
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 9999;
-            animation: slideInRight 0.3s ease;
-            min-width: 250px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        `;
-        
-        const icon = type === 'success' ? 'fa-check-circle' : 
-                     type === 'danger' ? 'fa-exclamation-circle' : 
-                     type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
-        
-        toast.innerHTML = `<i class="fas ${icon} me-2"></i> ${message}`;
-        document.body.appendChild(toast);
-        
-        setTimeout(() => {
-            toast.style.animation = 'slideOutRight 0.3s ease';
-            setTimeout(() => toast.remove(), 300);
-        }, 3000);
-    }
-
-    /**
-     * Imprimer une section spécifique
-     */
-    function printSection(elementId, title = 'Document') {
-        const element = document.getElementById(elementId);
-        if (!element) {
-            showToast('danger', 'Élément non trouvé');
-            return;
-        }
-        
-        const printWindow = window.open('', '_blank');
-        const content = element.cloneNode(true);
-        
-        // Supprimer les éléments non imprimables
-        content.querySelectorAll('.no-print, .btn, button, .btn-group').forEach(el => el.remove());
-        
-        printWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>${title}</title>
-                <meta charset="UTF-8">
-                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-                <style>
-                    body { padding: 20px; font-family: Arial, sans-serif; }
-                    .print-header {
-                        text-align: center;
-                        margin-bottom: 30px;
-                        padding-bottom: 20px;
-                        border-bottom: 2px solid #1a5f7a;
-                    }
-                    .print-header h1 { color: #1a5f7a; }
-                    .print-footer {
-                        text-align: center;
-                        margin-top: 30px;
-                        padding-top: 20px;
-                        border-top: 1px solid #ddd;
-                        font-size: 10px;
-                    }
-                    @media print { body { padding: 0; } }
-                </style>
-            </head>
-            <body>
-                <div class="print-header">
-                    <h1>HealthSys</h1>
-                    <p>Date: ${new Date().toLocaleDateString('fr-FR')}</p>
-                </div>
-                ${content.outerHTML}
-                <div class="print-footer">
-                    <p>© ${new Date().getFullYear()} HealthSys</p>
-                </div>
-                <script>window.print(); setTimeout(() => window.close(), 500);<\/script>
-            </body>
-            </html>
-        `);
-        printWindow.document.close();
-        showToast('success', 'Impression lancée');
-    }
-
-    /**
-     * Exporter en PDF
-     */
-    function exportToPDF(elementId, filename = 'document') {
-        const element = document.getElementById(elementId);
-        if (!element) {
-            showToast('danger', 'Élément non trouvé');
-            return;
-        }
-        
-        showToast('info', 'Préparation du PDF...');
-        
-        const printWindow = window.open('', '_blank');
-        const content = element.cloneNode(true);
-        content.querySelectorAll('.no-print, .btn, button, .btn-group').forEach(el => el.remove());
-        
-        printWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>${filename}</title>
-                <meta charset="UTF-8">
-                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-                <style>
-                    body { padding: 20px; font-family: Arial, sans-serif; }
-                    @media print { body { padding: 0; } }
-                </style>
-            </head>
-            <body>
-                ${content.outerHTML}
-                <script>window.print();<\/script>
-            </body>
-            </html>
-        `);
-        printWindow.document.close();
-        showToast('success', 'PDF prêt');
-    }
-
-    // Rendre les fonctions globales
-    window.printSection = printSection;
-    window.exportToPDF = exportToPDF;
-    window.showToast = showToast;
-
-    // ========== RECHERCHE AVEC AUTOCOMPLETE ==========
-    document.addEventListener('DOMContentLoaded', function() {
-        const searchInput = document.getElementById('globalSearchInput');
-        const resultsDiv = document.getElementById('globalSearchResults');
-        let searchTimeout = null;
-        
-        if (!searchInput) return;
-        
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-        
-        function getResultIcon(type) {
-            switch(type) {
-                case 'patient': return '<i class="fas fa-user"></i>';
-                case 'appointment': return '<i class="fas fa-calendar-check"></i>';
-                case 'doctor': return '<i class="fas fa-user-md"></i>';
-                case 'prescription': return '<i class="fas fa-prescription"></i>';
-                default: return '<i class="fas fa-search"></i>';
-            }
-        }
-        
-        function getResultIconClass(type) {
-            switch(type) {
-                case 'patient': return 'patient';
-                case 'appointment': return 'appointment';
-                case 'doctor': return 'doctor';
-                case 'prescription': return 'prescription';
-                default: return 'patient';
-            }
-        }
-        
-        searchInput.addEventListener('keyup', function() {
-            const query = this.value.trim();
-            
-            clearTimeout(searchTimeout);
-            
-            if (query.length < 2) {
-                resultsDiv.style.display = 'none';
-                return;
-            }
-            
-            searchTimeout = setTimeout(() => {
-                fetch(`/search/autocomplete?q=${encodeURIComponent(query)}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.length > 0) {
-                            let html = '<div class="list-group list-group-flush">';
-                            data.forEach(item => {
-                                const iconClass = getResultIconClass(item.type);
-                                const iconHtml = getResultIcon(item.type);
-                                html += `
-                                    <a href="${item.url}" class="list-group-item list-group-item-action d-flex align-items-center">
-                                        <div class="search-result-icon ${iconClass}">
-                                            ${iconHtml}
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <div class="fw-semibold">${escapeHtml(item.label)}</div>
-                                            <small class="text-muted">${escapeHtml(item.subtitle)}</small>
-                                        </div>
-                                        <i class="fas fa-chevron-right text-muted"></i>
-                                    </a>
-                                `;
-                            });
-                            html += '</div>';
-                            resultsDiv.innerHTML = html;
-                            resultsDiv.style.display = 'block';
-                        } else {
-                            resultsDiv.innerHTML = '<div class="p-3 text-center text-muted small">Aucun résultat trouvé</div>';
-                            resultsDiv.style.display = 'block';
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Erreur recherche:', error);
-                        resultsDiv.innerHTML = '<div class="p-3 text-center text-danger small">Erreur de recherche</div>';
-                        resultsDiv.style.display = 'block';
-                    });
-            }, 300);
-        });
-        
-        document.addEventListener('click', function(e) {
-            if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
-                resultsDiv.style.display = 'none';
+    if (menuToggle) {
+        menuToggle.addEventListener('click', function() {
+            sidebar.classList.toggle('mobile-open');
+            const icon = menuToggle.querySelector('i');
+            if (sidebar.classList.contains('mobile-open')) {
+                icon.classList.remove('fa-bars');
+                icon.classList.add('fa-times');
+            } else {
+                icon.classList.remove('fa-times');
+                icon.classList.add('fa-bars');
             }
         });
         
-        let selectedIndex = -1;
-        
-        searchInput.addEventListener('keydown', function(e) {
-            const items = resultsDiv.querySelectorAll('.list-group-item');
-            
-            if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
-                updateSelectedItem(items, selectedIndex);
-            } else if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                selectedIndex = Math.max(selectedIndex - 1, -1);
-                updateSelectedItem(items, selectedIndex);
-            } else if (e.key === 'Enter' && selectedIndex >= 0 && items[selectedIndex]) {
-                e.preventDefault();
-                window.location.href = items[selectedIndex].href;
-            }
-        });
-        
-        function updateSelectedItem(items, index) {
-            items.forEach((item, i) => {
-                if (i === index) {
-                    item.classList.add('active');
-                    item.style.backgroundColor = 'var(--gray-100)';
-                } else {
-                    item.classList.remove('active');
-                    item.style.backgroundColor = '';
+        // Close sidebar when clicking outside (on mobile)
+        document.addEventListener('click', function(event) {
+            if (window.innerWidth <= 768 && sidebar.classList.contains('mobile-open')) {
+                if (!sidebar.contains(event.target) && !menuToggle.contains(event.target)) {
+                    sidebar.classList.remove('mobile-open');
+                    const icon = menuToggle.querySelector('i');
+                    icon.classList.remove('fa-times');
+                    icon.classList.add('fa-bars');
                 }
-            });
-            
-            if (index >= 0 && items[index]) {
-                items[index].scrollIntoView({ block: 'nearest' });
             }
-        }
-    });
+        });
+    }
 </script>
-@stack('scripts')
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+@yield('scripts')
 </body>
 </html>

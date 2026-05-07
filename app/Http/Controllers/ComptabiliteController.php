@@ -20,65 +20,74 @@ class ComptabiliteController extends Controller
 
     public function index()
     {
+        // Real statistics
         $stats = [
             'total_patients' => Patient::count(),
             'today_appointments' => Appointment::whereDate('date_time', today())->count(),
             'waiting_patients' => WaitingRoom::where('status', 'waiting')->count(),
-            'monthly_revenue' => Invoice::whereMonth('created_at', now()->month)->sum('amount'),
+            'monthly_revenue' => Payment::whereMonth('payment_date', now()->month)
+                                      ->whereYear('payment_date', now()->year)
+                                      ->sum('amount'),
+            'pending_payment' => Invoice::where('status', '!=', 'paid')->get()->sum(function($invoice) {
+                return $invoice->amount - $invoice->paid_amount;
+            }),
         ];
         
-        // Données pour les graphiques
+        // Data for charts (Last 12 months)
         $monthly_revenue_data = [];
-        $appointments_data = [];
+        $labels = [];
         
-        for ($i = 1; $i <= 12; $i++) {
-            $monthly_revenue_data[] = Invoice::whereMonth('created_at', $i)->whereYear('created_at', now()->year)->sum('amount');
-            if ($i <= 6) {
-                $appointments_data[] = Appointment::whereMonth('date_time', $i)->whereYear('date_time', now()->year)->count();
-            }
+        for ($i = 11; $i >= 0; $i--) {
+            $date = now()->subMonths($i);
+            $month = $date->month;
+            $year = $date->year;
+            
+            $monthly_revenue_data[] = Payment::whereMonth('payment_date', $month)
+                                           ->whereYear('payment_date', $year)
+                                           ->sum('amount');
+            
+            $labels[] = $date->translatedFormat('M');
         }
+
+        // Payment methods breakdown
+        $payment_methods = Payment::select('payment_method', \DB::raw('count(*) as count'))
+                                   ->groupBy('payment_method')
+                                   ->get()
+                                   ->pluck('count', 'payment_method')
+                                   ->toArray();
         
-        $invoices = Invoice::with('patient.user')->orderBy('created_at', 'desc')->limit(10)->get();
+        $total_payments = array_sum($payment_methods);
+        $methods_stats = [
+            'cash' => $total_payments > 0 ? round(($payment_methods['cash'] ?? 0) / $total_payments * 100) : 0,
+            'card' => $total_payments > 0 ? round(($payment_methods['card'] ?? 0) / $total_payments * 100) : 0,
+            'check' => $total_payments > 0 ? round(($payment_methods['check'] ?? 0) / $total_payments * 100) : 0,
+            'transfer' => $total_payments > 0 ? round(($payment_methods['transfer'] ?? 0) / $total_payments * 100) : 0,
+        ];
         
-        return view('secretaire.comptabilite', compact('stats', 'monthly_revenue_data', 'appointments_data', 'invoices'));
+        // Latest invoices (limit to 5 for dashboard)
+        $invoices = Invoice::with('patient.user', 'consultation.doctor.user')
+                          ->orderBy('created_at', 'desc')
+                          ->limit(5)
+                          ->get();
+        
+        return view('secretaire.comptabilite', compact('stats', 'monthly_revenue_data', 'labels', 'methods_stats', 'invoices'));
     }
 
+    // Méthode pour afficher toutes les factures
+    public function allInvoices()
+    {
+        return redirect()->route('invoices.index');
+    }
+
+    // Méthode pour afficher les paiements
     public function paiements()
     {
-        $invoices = Invoice::with('patient.user')->orderBy('created_at', 'desc')->get();
-        return view('secretaire.paiements', compact('invoices'));
+        $payments = Payment::with('invoice.patient.user')->latest()->paginate(20);
+        return view('comptabilite.paiements', compact('payments'));
     }
 
     public function createFacture()
     {
-        $patients = Patient::with('user')->get();
-        return view('secretaire.create-facture', compact('patients'));
-    }
-
-    public function storeFacture(Request $request)
-    {
-        $request->validate([
-            'patient_id' => 'required|exists:patients,id',
-            'amount' => 'required|numeric|min:0',
-            'issue_date' => 'required|date',
-            'due_date' => 'required|date|after_or_equal:issue_date',
-        ]);
-
-        $invoiceNumber = 'INV-' . date('Ymd') . '-' . str_pad(Invoice::count() + 1, 4, '0', STR_PAD_LEFT);
-
-        Invoice::create([
-            'invoice_number' => $invoiceNumber,
-            'patient_id' => $request->patient_id,
-            'amount' => $request->amount,
-            'paid_amount' => 0,
-            'status' => 'pending',
-            'issue_date' => $request->issue_date,
-            'due_date' => $request->due_date,
-            'description' => $request->description,
-        ]);
-
-        // Correction ici : utiliser redirect()->to() au lieu de route()
-        return redirect()->to('/secretaire/comptabilite')
-            ->with('success', 'Facture créée avec succès');
+        return redirect()->route('invoices.create');
     }
 }

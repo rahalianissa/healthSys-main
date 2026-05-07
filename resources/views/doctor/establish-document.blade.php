@@ -419,9 +419,10 @@ function savePrescription() {
     let valid = true;
     
     items.forEach(item => {
-        const name = item.querySelector('input:nth-child(1)')?.value;
-        const dosage = item.querySelector('input:nth-child(2)')?.value;
-        const duration = item.querySelector('input:nth-child(3)')?.value;
+        const inputs = item.querySelectorAll('input');
+        const name = inputs[0]?.value;
+        const dosage = inputs[1]?.value;
+        const duration = inputs[2]?.value;
         
         if(!name || !dosage || !duration) {
             valid = false;
@@ -435,7 +436,7 @@ function savePrescription() {
         return;
     }
     
-    const btn = event.target;
+    const btn = document.querySelector('button[onclick="savePrescription()"]');
     const originalText = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Génération...';
     btn.disabled = true;
@@ -456,6 +457,7 @@ function savePrescription() {
         btn.disabled = false;
         
         if(data.success) {
+            // Ouvrir le PDF dans un nouvel onglet
             window.open(data.pdf_url, '_blank');
             showToast('success', 'Ordonnance générée avec succès !');
             document.getElementById('prescriptionForm').reset();
@@ -465,12 +467,13 @@ function savePrescription() {
                 container.lastChild.remove();
             }
         } else {
-            showToast('danger', 'Erreur lors de la génération');
+            showToast('danger', 'Erreur lors de la génération : ' + (data.message || 'Erreur inconnue'));
         }
     }).catch(error => {
         btn.innerHTML = originalText;
         btn.disabled = false;
         showToast('danger', 'Erreur réseau');
+        console.error(error);
     });
 }
 
@@ -480,7 +483,7 @@ function saveCertificate() {
         return;
     }
     
-    const btn = event.target;
+    const btn = document.querySelector('button[onclick="saveCertificate()"]');
     const originalText = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Génération...';
     btn.disabled = true;
@@ -522,7 +525,7 @@ function saveReport() {
         return;
     }
     
-    const btn = event.target;
+    const btn = document.querySelector('button[onclick="saveReport()"]');
     const originalText = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Génération...';
     btn.disabled = true;

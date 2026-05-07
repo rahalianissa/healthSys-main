@@ -10,7 +10,6 @@ class Invoice extends Model
     protected $fillable = [
         'invoice_number', 'patient_id', 'consultation_id', 'amount',
         'paid_amount', 'status', 'issue_date', 'due_date', 'description',
-        // NEW FIELDS
         'cnam_amount', 'mutuelle_amount', 'patient_amount',
         'cnam_reference', 'mutuelle_reference',
         'cnam_paid', 'mutuelle_paid', 'patient_paid',
@@ -44,22 +43,86 @@ class Invoice extends Model
         return $this->hasMany(Payment::class);
     }
 
-    // ==================== ACCESSORS (GETTERS) ====================
+    // ==================== METHODES DE CALCUL ====================
     
     /**
-     * Get total paid amount including insurance payments
+     * Calculate total paid amount from the payments table
      */
-    public function getTotalPaidAttribute(): float
+    public function calculateTotalPaid(): float
     {
-        $paid = 0;
-        if ($this->cnam_paid) $paid += $this->cnam_amount;
-        if ($this->mutuelle_paid) $paid += $this->mutuelle_amount;
-        if ($this->patient_paid) $paid += $this->patient_amount;
-        return round($paid, 2);
+        return round($this->payments()->sum('amount'), 2);
     }
 
     /**
-     * Get remaining amount to collect from each entity
+     * Get total paid for a specific type
+     */
+    public function getPaidByType(string $type): float
+    {
+        return round($this->payments()->where('payment_type', $type)->sum('amount'), 2);
+    }
+
+    /**
+     * Check if a specific part is fully paid
+     */
+    public function isBucketPaid(string $type): bool
+    {
+        $amountToPay = match($type) {
+            'cnam' => $this->cnam_amount,
+            'mutuelle' => $this->mutuelle_amount,
+            'patient' => $this->patient_amount,
+            default => 0
+        };
+
+        if ($amountToPay <= 0) return true;
+        
+        return $this->getPaidByType($type) >= round($amountToPay, 2);
+    }
+
+    /**
+     * Get total paid attribute (ACCESSOR)
+     */
+    public function getTotalPaidAttribute(): float
+    {
+        return $this->calculateTotalPaid();
+    }
+
+    /**
+     * Update overall invoice status
+     */
+    public function updateOverallStatus(): void
+    {
+        $totalPaid = $this->calculateTotalPaid();
+        $totalAmount = $this->amount;
+        
+        if ($totalPaid >= $totalAmount && $totalAmount > 0) {
+            $this->status = 'paid';
+        } elseif ($totalPaid > 0) {
+            $this->status = 'partially_paid';
+        } else {
+            $this->status = 'pending';
+        }
+    }
+
+    /**
+     * Synchronize paid_amount with total_paid and update status
+     */
+    public function syncPaidAmount(): void
+    {
+        $this->paid_amount = $this->calculateTotalPaid();
+        $this->updateOverallStatus();
+        $this->saveQuietly();
+    }
+
+    /**
+     * Get remaining amount (total - total_paid)
+     */
+    public function getRemainingAttribute(): float
+    {
+        return round($this->amount - $this->calculateTotalPaid(), 2);
+    }
+
+    /**
+     * Get remaining breakdown for each entity
      */
     public function getRemainingBreakdownAttribute(): array
     {
@@ -71,14 +134,6 @@ class Invoice extends Model
                        ($this->mutuelle_paid ? 0 : $this->mutuelle_amount) + 
                        ($this->patient_paid ? 0 : $this->patient_amount)
         ];
-    }
-
-    /**
-     * ✅ FIXED: Get remaining amount (total - total_paid)
-     */
-    public function getRemainingAttribute(): float
-    {
-        return round($this->amount - $this->total_paid, 2);
     }
 
     /**
@@ -94,7 +149,7 @@ class Invoice extends Model
     }
 
     /**
-     * Get formatted insurance breakdown for display
+     * Get insurance breakdown for display
      */
     public function getInsuranceBreakdownAttribute(): array
     {
@@ -124,43 +179,34 @@ class Invoice extends Model
     }
 
     /**
-     * Check if invoice is fully paid by all parties
+     * Check if invoice is fully paid
      */
     public function getIsFullyPaidAttribute(): bool
     {
-        return $this->total_paid >= $this->amount;
+        return $this->calculateTotalPaid() >= $this->amount;
     }
 
     /**
-     * Get progress percentage for each insurance type
+     * Get payment progress percentage
      */
     public function getPaymentProgressAttribute(): array
     {
         $total = $this->amount;
         
         if ($total <= 0) {
-            return ['cnam' => 0, 'mutuelle' => 0, 'patient' => 0];
+            return ['cnam' => 0, 'mutuelle' => 0, 'patient' => 0, 'total' => 0];
         }
         
         return [
             'cnam' => round(($this->cnam_paid ? $this->cnam_amount : 0) / $total * 100, 1),
             'mutuelle' => round(($this->mutuelle_paid ? $this->mutuelle_amount : 0) / $total * 100, 1),
             'patient' => round(($this->patient_paid ? $this->patient_amount : 0) / $total * 100, 1),
+            'total' => round($this->calculateTotalPaid() / $total * 100, 1),
         ];
     }
 
     // ==================== MUTATORS (SETTERS) ====================
     
-    /**
-     * Synchronize paid_amount with total_paid
-     */
-    public function syncPaidAmount(): void
-    {
-        $this->paid_amount = $this->total_paid;
-        $this->updateOverallStatus();
-        $this->saveQuietly();
-    }
-
     /**
      * Mark CNAM as paid
      */
@@ -171,13 +217,8 @@ class Invoice extends Model
             $this->cnam_reference = $reference;
         }
         $this->cnam_claim_date = now();
-        
-        // Update total paid amount
-        $this->paid_amount = $this->total_paid;
-        
-        // Update overall status
+        $this->paid_amount = $this->calculateTotalPaid();
         $this->updateOverallStatus();
-        
         $this->save();
     }
 
@@ -191,13 +232,8 @@ class Invoice extends Model
             $this->mutuelle_reference = $reference;
         }
         $this->mutuelle_claim_date = now();
-        
-        // Update total paid amount
-        $this->paid_amount = $this->total_paid;
-        
-        // Update overall status
+        $this->paid_amount = $this->calculateTotalPaid();
         $this->updateOverallStatus();
-        
         $this->save();
     }
 
@@ -207,34 +243,29 @@ class Invoice extends Model
     public function markPatientPaid(): void
     {
         $this->patient_paid = true;
-        
-        // Update total paid amount
-        $this->paid_amount = $this->total_paid;
-        
-        // Update overall status
+        $this->paid_amount = $this->calculateTotalPaid();
         $this->updateOverallStatus();
-        
         $this->save();
     }
 
     /**
-     * Mark all insurance as paid (for full payment)
+     * Mark all as paid (for full payment)
      */
     public function markAllPaid(string $cnamReference = null, string $mutuelleReference = null): void
     {
-        if ($this->cnam_amount > 0) {
+        if ($this->cnam_amount > 0 && !$this->cnam_paid) {
             $this->markCnamPaid($cnamReference);
         }
-        if ($this->mutuelle_amount > 0) {
+        if ($this->mutuelle_amount > 0 && !$this->mutuelle_paid) {
             $this->markMutuellePaid($mutuelleReference);
         }
-        if ($this->patient_amount > 0) {
+        if ($this->patient_amount > 0 && !$this->patient_paid) {
             $this->markPatientPaid();
         }
     }
 
     /**
-     * Reset insurance payment status
+     * Reset all insurance payments
      */
     public function resetInsurancePayments(): void
     {
@@ -250,65 +281,31 @@ class Invoice extends Model
         $this->save();
     }
 
-    // ==================== PRIVATE METHODS ====================
-    
-    /**
-     * Update overall invoice status based on payment status
-     */
-    protected function updateOverallStatus(): void
-    {
-        $totalRemaining = $this->cnam_amount + $this->mutuelle_amount + $this->patient_amount;
-        $totalPaid = $this->total_paid;
-        
-        if ($totalPaid >= $totalRemaining && $totalRemaining > 0) {
-            $this->status = 'paid';
-        } elseif ($totalPaid > 0) {
-            $this->status = 'partially_paid';
-        } else {
-            $this->status = 'pending';
-        }
-    }
-
     // ==================== SCOPE QUERIES ====================
     
-    /**
-     * Scope for pending CNAM claims
-     */
     public function scopePendingCnamClaims($query)
     {
         return $query->where('cnam_amount', '>', 0)
                      ->where('cnam_paid', false);
     }
 
-    /**
-     * Scope for pending Mutuelle claims
-     */
     public function scopePendingMutuelleClaims($query)
     {
         return $query->where('mutuelle_amount', '>', 0)
                      ->where('mutuelle_paid', false);
     }
 
-    /**
-     * Scope for pending patient payments
-     */
     public function scopePendingPatientPayments($query)
     {
         return $query->where('patient_amount', '>', 0)
                      ->where('patient_paid', false);
     }
 
-    /**
-     * Scope for fully paid invoices
-     */
     public function scopeFullyPaid($query)
     {
         return $query->where('status', 'paid');
     }
 
-    /**
-     * Scope for overdue invoices
-     */
     public function scopeOverdue($query)
     {
         return $query->where('due_date', '<', now())

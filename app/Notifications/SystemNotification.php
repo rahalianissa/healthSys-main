@@ -5,7 +5,6 @@ namespace App\Notifications;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\MailMessage;
-use App\Notifications\SystemNotification; 
 use InvalidArgumentException;
 
 class SystemNotification extends Notification
@@ -23,7 +22,7 @@ class SystemNotification extends Notification
 
     public function via($notifiable)
     {
-        return ['mail', 'database']; // Add 'sms', 'slack', etc. if needed
+        return ['mail', 'database'];
     }
 
     public function toMail($notifiable)
@@ -46,7 +45,6 @@ class SystemNotification extends Notification
             );
         }
 
-        // ✅ Use salutation() instead of closing()
         if (!empty($this->config['closing'])) {
             $mail->salutation($this->config['closing']);
         }
@@ -69,150 +67,109 @@ class SystemNotification extends Notification
     protected function getConfig(string $type): array
     {
         return [
-            // 👨‍⚕️ DOCTOR INVITATION
             'doctor.invitation' => [
                 'type_key' => 'doctor.invitation',
                 'subject' => '🎉 Bienvenue sur HealthSys - Votre compte est activé',
                 'greeting' => 'Bonjour {{name}},',
                 'lines' => [
                     'Vous avez été ajouté comme médecin sur la plateforme HealthSys.',
-                    '',
                     '📧 Email de connexion: {{email}}',
                     '🔑 Votre mot de passe: {{password}}',
-                    '',
-                    '💡 Vous pouvez modifier votre mot de passe à tout moment depuis votre profil.',
                 ],
                 'action_text' => 'Se connecter maintenant',
                 'action_url' => '/login',
-                'db_message' => 'Compte activé. Identifiants envoyés par email.',
+                'db_message' => 'Compte activé',
                 'url' => '/login',
                 'icon' => 'fa-user-plus',
-                'closing' => "Cordialement,\nL'équipe HealthSys", // ✅ This works with salutation()
+                'closing' => "Cordialement,\nL'équipe HealthSys",
             ],
-
-            // 🩺 NEW APPOINTMENT FOR DOCTOR
             'appointment.new' => [
                 'type_key' => 'appointment.new',
-                'subject' => '📅 Nouveau rendez-vous assigné - HealthSys',
+                'subject' => '📅 Nouveau rendez-vous - HealthSys',
                 'greeting' => 'Bonjour Dr. {{name}},',
                 'lines' => [
                     'Un nouveau rendez-vous a été programmé :',
                     '👤 Patient: {{patient_name}}',
                     '📅 Date: {{date}}',
                     '🕐 Heure: {{time}}',
-                    '📝 Motif: {{reason}}',
                 ],
                 'action_text' => 'Voir le rendez-vous',
                 'action_url' => '/doctor/appointments/{{id}}',
-                'db_message' => 'Nouveau rdv avec {{patient_name}} le {{date}}',
+                'db_message' => 'Nouveau rdv avec {{patient_name}}',
                 'url' => '/doctor/appointments/{{id}}',
                 'icon' => 'fa-calendar-plus',
             ],
-
-
-            // 📅 APPOINTMENTS
-            'appointment.confirmation' => [
-                'type_key' => 'appointment.confirmation',
-                'subject' => 'Confirmation de rendez-vous - HealthSys',
+            'appointment.new_for_secretary' => [
+                'type_key' => 'appointment.new_for_secretary',
+                'subject' => '📅 Nouveau rendez-vous à confirmer',
                 'greeting' => 'Bonjour {{name}},',
                 'lines' => [
-                    'Votre rendez-vous a été confirmé avec succès.',
-                    ' Date: {{date}}',
-                    ' Heure: {{time}}',
-                    '‍⚕️ Médecin: Dr. {{doctor}}',
-                ],
-                'action_text' => 'Voir le rendez-vous',
-                'action_url' => '/appointments/{{id}}',
-                'db_message' => 'Rendez-vous confirmé le {{date}} à {{time}}',
-                'url' => '/appointments/{{id}}',
-                'icon' => 'fa-calendar-check',
-            ],
-            'appointment.reminder' => [
-                'type_key' => 'appointment.reminder',
-                'subject' => 'Rappel de rendez-vous - HealthSys',
-                'greeting' => 'Bonjour {{name}},',
-                'lines' => [
-                    'Vous avez un rendez-vous prévu demain :',
+                    'Un nouveau rendez-vous nécessite votre confirmation :',
+                    '👤 Patient: {{patient_name}}',
+                    '👨‍⚕️ Médecin: Dr. {{doctor_name}}',
                     '📅 Date: {{date}}',
                     '🕐 Heure: {{time}}',
-                    '👨‍⚕️ Médecin: Dr. {{doctor}}',
                 ],
-                'action_text' => 'Confirmer ma présence',
-                'action_url' => '/appointments/{{id}}/confirm',
-                'db_message' => 'Rappel: Rdv demain à {{time}}',
-                'url' => '/appointments/{{id}}',
-                'icon' => 'fa-clock',
+                'action_text' => 'Confirmer',
+                'action_url' => '/secretaire/appointments/{{id}}',
+                'db_message' => 'RDV à confirmer: {{patient_name}}',
+                'url' => '/secretaire/appointments/{{id}}',
+                'icon' => 'fa-calendar-plus',
+            ],
+            'appointment.confirmed_for_patient' => [
+                'type_key' => 'appointment.confirmed_for_patient',
+                'subject' => '✅ Votre rendez-vous est confirmé',
+                'greeting' => 'Bonjour {{name}},',
+                'lines' => [
+                    'Votre rendez-vous a été confirmé.',
+                    '👨‍⚕️ Médecin: Dr. {{doctor_name}}',
+                    '📅 Date: {{date}}',
+                    '🕐 Heure: {{time}}',
+                ],
+                'action_text' => 'Voir mon rendez-vous',
+                'action_url' => '/patient/appointments',
+                'db_message' => 'RDV confirmé avec Dr. {{doctor_name}}',
+                'url' => '/patient/appointments',
+                'icon' => 'fa-calendar-check',
             ],
             'appointment.cancellation' => [
                 'type_key' => 'appointment.cancellation',
-                'subject' => 'Annulation de rendez-vous - HealthSys',
+                'subject' => '❌ Annulation de rendez-vous - HealthSys',
                 'greeting' => 'Bonjour {{name}},',
                 'lines' => [
                     'Votre rendez-vous a été annulé.',
+                    '👨‍⚕️ Médecin: Dr. {{doctor}}',
                     '📅 Date: {{date}}',
                     '🕐 Heure: {{time}}',
-                    '👨‍⚕️ Médecin: Dr. {{doctor}}',
+                    '',
+                    '📝 Motif: {{reason}}',
                 ],
                 'action_text' => 'Prendre un nouveau rendez-vous',
-                'action_url' => '/patient/appointments/book',
-                'db_message' => 'Rendez-vous annulé',
+                'action_url' => '/patient/appointments',
+                'db_message' => 'Rendez-vous annulé avec Dr. {{doctor}} le {{date}}',
                 'url' => '/patient/appointments',
                 'icon' => 'fa-calendar-xmark',
             ],
-
-            //  MEDICAL RESULTS
-            'result.available' => [
-                'type_key' => 'result.available',
-                'subject' => 'Résultats médicaux disponibles - HealthSys',
+            'patient.new_registration' => [
+                'type_key' => 'patient.new_registration',
+                'subject' => '👤 Nouveau patient inscrit',
                 'greeting' => 'Bonjour {{name}},',
                 'lines' => [
-                    'Vos résultats d\'analyse sont maintenant disponibles.',
-                    '📄 Type: {{result_type}}',
-                    '🏥 Laboratoire: {{lab_name}}',
+                    'Un nouveau patient vient de s\'inscrire :',
+                    '👤 Nom: {{patient_name}}',
+                    '📧 Email: {{patient_email}}',
+                    '📞 Téléphone: {{patient_phone}}',
                 ],
-                'action_text' => 'Consulter les résultats',
-                'action_url' => '/patient/medical-record/{{consultation_id}}',
-                'db_message' => 'Résultats disponibles: {{result_type}}',
-                'url' => '/patient/medical-record/{{consultation_id}}',
-                'icon' => 'fa-file-medical',
+                'action_text' => 'Voir le dossier',
+                'action_url' => '/secretaire/patients/{{patient_id}}',
+                'db_message' => 'Nouveau patient: {{patient_name}}',
+                'url' => '/secretaire/patients/{{patient_id}}',
+                'icon' => 'fa-user-plus',
             ],
+        ][$type] ?? throw new InvalidArgumentException("Notification type '{$type}' not configured.");
 
-            // 💬 COMMUNICATION
-            'message.new' => [
-                'type_key' => 'message.new',
-                'subject' => 'Nouveau message - HealthSys',
-                'greeting' => 'Bonjour {{name}},',
-                'lines' => [
-                    'Vous avez reçu un nouveau message de {{sender}}.',
-                    '📝 Aperçu: {{preview}}',
-                ],
-                'action_text' => 'Lire le message',
-                'action_url' => '/messages/{{message_id}}',
-                'db_message' => 'Nouveau message de {{sender}}',
-                'url' => '/messages/{{message_id}}',
-                'icon' => 'fa-envelope',
-            ],
-
-            // 💰 ADMINISTRATIVE
-            'invoice.due' => [
-                'type_key' => 'invoice.due',
-                'subject' => 'Rappel de paiement - HealthSys',
-                'greeting' => 'Bonjour {{name}},',
-                'lines' => [
-                    'Un paiement est en attente pour le montant de {{amount}} DH.',
-                    '📄 Facture #: {{invoice_number}}',
-                    '📅 Date limite: {{due_date}}',
-                ],
-                'action_text' => 'Payer maintenant',
-                'action_url' => '/invoices/{{invoice_id}}/pay',
-                'db_message' => 'Paiement en attente: {{amount}} DH',
-                'url' => '/invoices/{{invoice_id}}/pay',
-                'icon' => 'fa-credit-card',
-            ],
-            
-            //  Add new types here by copying a block and changing keys
-        ][$type] ?? throw new InvalidArgumentException("Notification type '{$type}' not configured in SystemNotification.");
     }
+    
 
     protected function replace(string $text, $notifiable): string
     {

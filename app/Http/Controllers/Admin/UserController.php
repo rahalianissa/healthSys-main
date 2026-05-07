@@ -49,6 +49,15 @@ class UserController extends Controller
         return view('admin.users.index', compact('users', 'roles'));
     }
 
+    public function recent(): \Illuminate\Http\JsonResponse
+    {
+        $users = User::orderBy('created_at', 'desc')->limit(10)->get();
+        return response()->json([
+            'success' => true,
+            'data' => $users
+        ]);
+    }
+
     // ==================== CRÉER UN UTILISATEUR ====================
     public function create()
     {

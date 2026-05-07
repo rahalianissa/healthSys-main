@@ -77,6 +77,24 @@ class DashboardController extends Controller
         ));
     }
 
+    public function stats(): \Illuminate\Http\JsonResponse
+    {
+        $stats = [
+            'total_patients' => Patient::count(),
+            'total_doctors' => User::where('role', 'doctor')->count(),
+            'total_secretaries' => User::where('role', 'secretaire')->count(),
+            'total_appointments' => Appointment::count(),
+            'total_revenue' => Invoice::sum('amount'),
+            'total_paid' => Invoice::sum('paid_amount'),
+            'pending_payment' => Invoice::sum('amount') - Invoice::sum('paid_amount'),
+        ];
+
+        return response()->json([
+            'success' => true,
+            'data' => $stats
+        ]);
+    }
+
     public function getChartData()
     {
         $months = [];

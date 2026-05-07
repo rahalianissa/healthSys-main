@@ -9,6 +9,7 @@ use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
+
 class Kernel extends ConsoleKernel
 {
     /**
@@ -21,6 +22,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\SendAppointmentReminders::class,
         \App\Console\Commands\CleanupOldRecords::class,
         \App\Console\Commands\GenerateDailyReport::class,
+        
     ];
 
     /**
@@ -244,4 +246,5 @@ class Kernel extends ConsoleKernel
 
         require base_path('routes/console.php');
     }
+    
 }

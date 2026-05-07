@@ -103,7 +103,8 @@
                     <th>Médicament</th>
                     <th>Dosage</th>
                     <th>Durée</th>
-                </thead>
+                </tr>
+            </thead>
             <tbody>
                 @php
                     $meds = is_array($prescription->medications) ? $prescription->medications : json_decode($prescription->medications, true);

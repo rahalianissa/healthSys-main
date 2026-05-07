@@ -7,6 +7,7 @@ use App\Models\Patient;
 use App\Models\Doctor;
 use App\Models\Appointment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class ConsultationController extends Controller
 {
@@ -104,8 +105,14 @@ class ConsultationController extends Controller
     // ========== MÉTHODES POUR LE MÉDECIN ==========
     public function doctorConsultations()
     {
+        $doctor = Auth::user()->doctor;
+        
+        if (!$doctor) {
+            abort(403, 'Vous n\'êtes pas associé à un profil médecin.');
+        }
+        
         $consultations = Consultation::with(['patient.user'])
-            ->where('doctor_id', auth()->user()->doctor->id)
+            ->where('doctor_id', $doctor->id)
             ->orderBy('consultation_date', 'desc')
             ->get();
         
@@ -114,8 +121,14 @@ class ConsultationController extends Controller
 
     public function visitHistory()
     {
+        $doctor = Auth::user()->doctor;
+        
+        if (!$doctor) {
+            abort(403, 'Vous n\'êtes pas associé à un profil médecin.');
+        }
+        
         $consultations = Consultation::with(['patient.user'])
-            ->where('doctor_id', auth()->user()->doctor->id)
+            ->where('doctor_id', $doctor->id)
             ->orderBy('consultation_date', 'desc')
             ->get();
         
@@ -125,8 +138,14 @@ class ConsultationController extends Controller
     // ========== MÉTHODES POUR LE PATIENT ==========
     public function patientMedicalRecord()
     {
+        $patient = Auth::user()->patient;
+        
+        if (!$patient) {
+            abort(403, 'Vous n\'êtes pas associé à un profil patient.');
+        }
+        
         $consultations = Consultation::with(['doctor.user'])
-            ->where('patient_id', auth()->user()->patient->id)
+            ->where('patient_id', $patient->id)
             ->orderBy('consultation_date', 'desc')
             ->get();
         
@@ -139,31 +158,77 @@ class ConsultationController extends Controller
         return response()->json($consultation);
     }
 
-    // ========== NOUVELLES MÉTHODES POUR CRÉER CONSULTATION DEPUIS DASHBOARD MÉDECIN ==========
+    // ========== MÉTHODES POUR CRÉER CONSULTATION DEPUIS DASHBOARD MÉDECIN ==========
     public function createConsultation(Request $request)
     {
         $patientId = $request->query('patient');
         $appointmentId = $request->query('appointment');
+        $waitingId = $request->query('waiting_id');
         
-        $patient = Patient::with('user')->findOrFail($patientId);
-        $appointment = Appointment::findOrFail($appointmentId);
+        $doctor = Auth::user()->doctor;
+        if (!$doctor) {
+            abort(403, 'Profil médecin non trouvé.');
+        }
+
+        $patient = null;
+        if ($patientId) {
+            $patient = Patient::with('user')->findOrFail($patientId);
+        }
+
+        $appointment = null;
+        if ($appointmentId && $appointmentId > 0) {
+            $appointment = Appointment::find($appointmentId);
+            // Vérifier que le rendez-vous appartient bien au médecin connecté
+            if ($appointment && $appointment->doctor_id != $doctor->id) {
+                $appointment = null;
+            }
+        }
+
+        // Si aucun patient n'est sélectionné, on récupère la liste des patients du médecin
+        $patients = [];
+        if (!$patient) {
+            $patients = Patient::with('user')->get();
+        }
         
-        return view('doctor.consultation-create', compact('patient', 'appointment'));
+        return view('doctor.consultation-create', compact('patient', 'patients', 'appointment', 'waitingId'));
     }
 
     public function storeConsultation(Request $request)
     {
         $request->validate([
             'patient_id' => 'required|exists:patients,id',
-            'appointment_id' => 'required|exists:appointments,id',
+            'appointment_id' => 'nullable|exists:appointments,id',
+            'waiting_id' => 'nullable|exists:waiting_rooms,id',
+            'symptoms' => 'nullable|string',
             'diagnosis' => 'nullable|string',
             'treatment' => 'nullable|string',
             'notes' => 'nullable|string',
+            'weight' => 'nullable|numeric',
+            'height' => 'nullable|numeric',
+            'blood_pressure' => 'nullable|string',
+            'temperature' => 'nullable|numeric',
+            'heart_rate' => 'nullable|string',
         ]);
+
+        $doctor = Auth::user()->doctor;
+        
+        if (!$doctor) {
+            return redirect()->back()->with('error', 'Profil médecin non trouvé.');
+        }
+
+        // Vérifier que le rendez-vous appartient au médecin connecté si fourni
+        if ($request->appointment_id) {
+            $appointment = Appointment::findOrFail($request->appointment_id);
+            if ($appointment->doctor_id != $doctor->id) {
+                abort(403, 'Accès non autorisé');
+            }
+            // Mettre à jour le statut du rendez-vous
+            $appointment->update(['status' => 'completed']);
+        }
 
         $consultation = Consultation::create([
             'patient_id' => $request->patient_id,
-            'doctor_id' => auth()->user()->doctor->id,
+            'doctor_id' => $doctor->id,
             'appointment_id' => $request->appointment_id,
             'consultation_date' => now(),
             'symptoms' => $request->symptoms,
@@ -177,10 +242,27 @@ class ConsultationController extends Controller
             'heart_rate' => $request->heart_rate,
         ]);
 
-        // Mettre à jour le statut du rendez-vous
-        Appointment::where('id', $request->appointment_id)->update(['status' => 'completed']);
+        // Si vient de la salle d'attente, marquer comme terminé
+        if ($request->waiting_id) {
+            $waiting = \App\Models\WaitingRoom::find($request->waiting_id);
+            if ($waiting) {
+                $waiting->update([
+                    'status' => 'completed',
+                    'end_time' => now()
+                ]);
+            }
+        }
 
-        return redirect()->route('doctor.consultations')->with('success', 'Consultation enregistrée avec succès');
+        return redirect()->route('doctor.consultations')
+            ->with('success', 'Consultation enregistrée avec succès');
     }
     
+    public function doctorShowConsultation($id)
+    {
+        $consultation = Consultation::with(['patient.user', 'appointment'])
+            ->where('doctor_id', Auth::user()->doctor->id)
+            ->findOrFail($id);
+        
+        return view('doctor.consultation-show', compact('consultation'));
+    }
 }

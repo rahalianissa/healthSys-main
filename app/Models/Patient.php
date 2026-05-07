@@ -11,7 +11,6 @@ class Patient extends Model
     protected $fillable = [
         'user_id', 'insurance_number', 'insurance_company', 'emergency_contact',
         'emergency_phone', 'allergies', 'medical_history', 'blood_type', 'weight', 'height',
-        // NEW FIELDS
         'has_cnam', 'cnam_number', 'cnam_expiry_date',
         'has_mutuelle', 'mutuelle_number', 'mutuelle_company', 'mutuelle_rate', 'mutuelle_expiry_date'
     ];
@@ -122,6 +121,7 @@ class Patient extends Model
         if ($this->hasValidCnam()) {
             $cnamAmount = $customCnamAmount ?? ($total * $cnamRate);
             $cnamAmount = min($cnamAmount, $total); // Can't exceed total
+            $cnamAmount = round($cnamAmount, 2);
         }
         
         $remainingAfterCnam = $total - $cnamAmount;
@@ -132,18 +132,19 @@ class Patient extends Model
             $mutuelleRate = $this->getMutuelleRate() / 100;
             $mutuelleAmount = $remainingAfterCnam * $mutuelleRate;
             $mutuelleAmount = min($mutuelleAmount, $remainingAfterCnam);
+            $mutuelleAmount = round($mutuelleAmount, 2);
         }
         
         $remainingAfterMutuelle = $remainingAfterCnam - $mutuelleAmount;
         
         // Step 3: Patient pays the rest
-        $patientAmount = max(0, $remainingAfterMutuelle);
+        $patientAmount = max(0, round($remainingAfterMutuelle, 2));
         
         return [
             'total' => round($total, 2),
-            'cnam' => round($cnamAmount, 2),
-            'mutuelle' => round($mutuelleAmount, 2),
-            'patient' => round($patientAmount, 2),
+            'cnam' => $cnamAmount,
+            'mutuelle' => $mutuelleAmount,
+            'patient' => $patientAmount,
             'cnam_rate' => $cnamRate * 100,
             'mutuelle_rate' => $this->getMutuelleRate(),
         ];

@@ -1,212 +1,344 @@
-{{-- resources/views/secretaire/patients/create.blade.php --}}
-
 @extends('layouts.app')
 
-@section('title', 'Ajouter un patient')
-@section('page-title', 'Nouveau patient')
+@section('page_title', 'Ajouter un patient')
+@section('page_subtitle', 'Enregistrer un nouveau dossier patient')
 
 @section('content')
-<div class="container">
-    <form action="{{ url('/secretaire/patients') }}" method="POST">
+
+<style>
+    :root {
+        --primary-blue: #023E8A;
+        --primary-dark: #03045E;
+        --primary-light: #0077B6;
+        --primary-lighter: #00B4D8;
+        --primary-bg: #CAF0F8;
+        --success: #10B981;
+        --warning: #F59E0B;
+        --danger: #EF4444;
+    }
+
+    .form-header {
+        background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-blue) 100%);
+        border-radius: 24px;
+        padding: 30px;
+        margin-bottom: 32px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .form-header::before {
+        content: '';
+        position: absolute;
+        top: -30%;
+        right: -10%;
+        width: 250px;
+        height: 250px;
+        background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+    
+    .form-card {
+        background: white;
+        border-radius: 24px;
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .form-card:hover {
+        box-shadow: 0 10px 25px -5px rgba(0, 119, 182, 0.1);
+    }
+    
+    .form-section {
+        padding: 24px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    
+    .form-section:last-child {
+        border-bottom: none;
+    }
+    
+    .section-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--primary-dark);
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .section-title i {
+        width: 32px;
+        height: 32px;
+        background: var(--primary-bg);
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--primary-blue);
+        font-size: 14px;
+    }
+    
+    .form-input {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 12px 16px;
+        width: 100%;
+        transition: all 0.2s;
+    }
+    
+    .form-input:focus {
+        outline: none;
+        border-color: var(--primary-lighter);
+        box-shadow: 0 0 0 3px rgba(0, 180, 216, 0.1);
+    }
+    
+    .form-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #475569;
+        margin-bottom: 6px;
+        display: block;
+    }
+    
+    .form-label .required {
+        color: var(--danger);
+        margin-left: 3px;
+    }
+    
+    .btn-submit {
+        background: linear-gradient(135deg, var(--primary-blue), var(--primary-light));
+        color: white;
+        padding: 14px 32px;
+        border-radius: 14px;
+        font-weight: 600;
+        transition: all 0.3s;
+        border: none;
+        cursor: pointer;
+    }
+    
+    .btn-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px -5px rgba(2, 62, 138, 0.3);
+    }
+    
+    .btn-cancel {
+        background: #f1f5f9;
+        color: #475569;
+        padding: 14px 32px;
+        border-radius: 14px;
+        font-weight: 600;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .btn-cancel:hover {
+        background: #e2e8f0;
+        color: #1e293b;
+    }
+    
+    .info-note {
+        background: #f0f9ff;
+        border-left: 3px solid var(--primary-light);
+        padding: 12px;
+        border-radius: 12px;
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .animate-fade {
+        animation: fadeInUp 0.5s ease forwards;
+    }
+</style>
+
+<!-- Form Header -->
+<div class="form-header animate-fade">
+    <div class="relative z-10">
+        <div class="inline-flex items-center gap-2 bg-white/10 rounded-full px-3 py-1 mb-3">
+            <i class="fas fa-user-plus text-cyan-300 text-xs"></i>
+            <span class="text-white/80 text-xs font-semibold tracking-wider">NOUVEAU DOSSIER</span>
+        </div>
+        <h1 class="text-white text-2xl lg:text-3xl font-bold mb-1">Ajouter un patient</h1>
+        <p class="text-white/60 text-sm">Remplissez les informations ci-dessous pour créer un nouveau dossier patient</p>
+    </div>
+</div>
+
+<!-- Form -->
+<div class="form-card animate-fade" style="animation-delay: 0.1s">
+    <form action="{{ route('secretaire.patients.store') }}" method="POST">
         @csrf
 
-        {{-- Informations personnelles --}}
-        <div class="card mb-4">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="fas fa-user me-2"></i>Informations personnelles</h5>
+        <!-- Informations personnelles -->
+        <div class="form-section">
+            <div class="section-title">
+                <i class="fas fa-user-circle"></i>
+                <span>Informations personnelles</span>
             </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Nom complet <span class="text-danger">*</span></label>
-                        <input type="text" name="name" class="form-control" required>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Email <span class="text-danger">*</span></label>
-                        <input type="email" name="email" class="form-control" required>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Mot de passe <span class="text-danger">*</span></label>
-                        <input type="password" name="password" class="form-control" required>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Téléphone <span class="text-danger">*</span></label>
-                        <input type="text" name="phone" class="form-control" required>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Date de naissance</label>
-                        <input type="date" name="birth_date" class="form-control">
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Groupe sanguin</label>
-                        <select name="blood_type" class="form-control">
-                            <option value="">Sélectionner</option>
-                            <option value="A+">A+</option>
-                            <option value="A-">A-</option>
-                            <option value="B+">B+</option>
-                            <option value="B-">B-</option>
-                            <option value="AB+">AB+</option>
-                            <option value="AB-">AB-</option>
-                            <option value="O+">O+</option>
-                            <option value="O-">O-</option>
-                        </select>
-                    </div>
-                    <div class="col-md-12 mb-3">
-                        <label class="form-label">Adresse</label>
-                        <textarea name="address" class="form-control" rows="2"></textarea>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                    <label class="form-label">Nom complet <span class="required">*</span></label>
+                    <input type="text" name="name" class="form-input @error('name') is-invalid @enderror" value="{{ old('name') }}" required placeholder="Jean Dupont">
+                    @error('name') <div class="text-red-500 text-xs mt-1">{{ $message }}</div> @enderror
+                </div>
+                
+                <div>
+                    <label class="form-label">Email <span class="required">*</span></label>
+                    <input type="email" name="email" class="form-input @error('email') is-invalid @enderror" value="{{ old('email') }}" required placeholder="jean.dupont@email.com">
+                    @error('email') <div class="text-red-500 text-xs mt-1">{{ $message }}</div> @enderror
+                </div>
+                
+                <div>
+                    <label class="form-label">Mot de passe <span class="required">*</span></label>
+                    <input type="password" name="password" class="form-input @error('password') is-invalid @enderror" required placeholder="••••••••">
+                    @error('password') <div class="text-red-500 text-xs mt-1">{{ $message }}</div> @enderror
+                </div>
+                
+                <div>
+                    <label class="form-label">Confirmer le mot de passe <span class="required">*</span></label>
+                    <input type="password" name="password_confirmation" class="form-input" required placeholder="••••••••">
+                </div>
+                
+                <div>
+                    <label class="form-label">Téléphone <span class="required">*</span></label>
+                    <input type="text" name="phone" class="form-input @error('phone') is-invalid @enderror" value="{{ old('phone') }}" required placeholder="+216 XX XXX XXX">
+                    @error('phone') <div class="text-red-500 text-xs mt-1">{{ $message }}</div> @enderror
+                </div>
+                
+                <div>
+                    <label class="form-label">Date de naissance</label>
+                    <input type="date" name="birth_date" class="form-input @error('birth_date') is-invalid @enderror" value="{{ old('birth_date') }}">
+                    @error('birth_date') <div class="text-red-500 text-xs mt-1">{{ $message }}</div> @enderror
+                </div>
+                
+                <div class="md:col-span-2">
+                    <label class="form-label">Adresse</label>
+                    <textarea name="address" class="form-input @error('address') is-invalid @enderror" rows="2" placeholder="Adresse complète">{{ old('address') }}</textarea>
+                    @error('address') <div class="text-red-500 text-xs mt-1">{{ $message }}</div> @enderror
+                </div>
+            </div>
+        </div>
+
+        <!-- Informations médicales -->
+        <div class="form-section">
+            <div class="section-title">
+                <i class="fas fa-notes-medical"></i>
+                <span>Informations médicales</span>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                    <label class="form-label">Groupe sanguin</label>
+                    <select name="blood_type" class="form-input">
+                        <option value="">Sélectionner</option>
+                        <option value="A+" {{ old('blood_type') == 'A+' ? 'selected' : '' }}>A+</option>
+                        <option value="A-" {{ old('blood_type') == 'A-' ? 'selected' : '' }}>A-</option>
+                        <option value="B+" {{ old('blood_type') == 'B+' ? 'selected' : '' }}>B+</option>
+                        <option value="B-" {{ old('blood_type') == 'B-' ? 'selected' : '' }}>B-</option>
+                        <option value="AB+" {{ old('blood_type') == 'AB+' ? 'selected' : '' }}>AB+</option>
+                        <option value="AB-" {{ old('blood_type') == 'AB-' ? 'selected' : '' }}>AB-</option>
+                        <option value="O+" {{ old('blood_type') == 'O+' ? 'selected' : '' }}>O+</option>
+                        <option value="O-" {{ old('blood_type') == 'O-' ? 'selected' : '' }}>O-</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="form-label">Poids (kg)</label>
+                    <input type="number" step="0.1" name="weight" class="form-input" value="{{ old('weight') }}" placeholder="70.5">
+                </div>
+                
+                <div>
+                    <label class="form-label">Taille (cm)</label>
+                    <input type="number" step="0.1" name="height" class="form-input" value="{{ old('height') }}" placeholder="175">
+                </div>
+                
+                <div class="md:col-span-2">
+                    <label class="form-label">Allergies</label>
+                    <textarea name="allergies" class="form-input" rows="2" placeholder="Liste des allergies connues...">{{ old('allergies') }}</textarea>
+                </div>
+                
+                <div class="md:col-span-2">
+                    <label class="form-label">Antécédents médicaux</label>
+                    <textarea name="medical_history" class="form-input" rows="2" placeholder="Antécédents chirurgicaux, maladies chroniques...">{{ old('medical_history') }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Assurance médicale -->
+        <div class="form-section">
+            <div class="section-title">
+                <i class="fas fa-shield-alt"></i>
+                <span>Couverture d'assurance</span>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                    <label class="form-label">Compagnie mutuelle</label>
+                    <input type="text" name="insurance_company" class="form-input" value="{{ old('insurance_company') }}" placeholder="CNSS, CNOPS, ...">
+                </div>
+                
+                <div>
+                    <label class="form-label">Numéro d'affiliation</label>
+                    <input type="text" name="insurance_number" class="form-input" value="{{ old('insurance_number') }}" placeholder="Numéro de mutuelle">
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact d'urgence -->
+        <div class="form-section">
+            <div class="section-title">
+                <i class="fas fa-phone-alt"></i>
+                <span>Contact d'urgence</span>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                    <label class="form-label">Nom du contact</label>
+                    <input type="text" name="emergency_contact" class="form-input" value="{{ old('emergency_contact') }}" placeholder="Personne à contacter">
+                </div>
+                
+                <div>
+                    <label class="form-label">Téléphone urgence</label>
+                    <input type="text" name="emergency_phone" class="form-input" value="{{ old('emergency_phone') }}" placeholder="Numéro d'urgence">
+                </div>
+            </div>
+        </div>
+
+        <!-- Note -->
+        <div class="form-section">
+            <div class="info-note">
+                <div class="flex items-start gap-2">
+                    <i class="fas fa-info-circle text-primary-light mt-0.5 text-sm"></i>
+                    <div class="text-xs text-slate-600">
+                        <span class="font-semibold">Note:</span> Le patient recevra un email avec ses identifiants de connexion.
                     </div>
                 </div>
             </div>
         </div>
 
-        {{-- Informations médicales --}}
-        <div class="card mb-4">
-            <div class="card-header bg-info text-white">
-                <h5 class="mb-0"><i class="fas fa-notes-medical me-2"></i>Informations médicales</h5>
+        <!-- Actions -->
+        <div class="form-section">
+            <div class="flex justify-end gap-3">
+                <a href="{{ route('secretaire.patients.index') }}" class="btn-cancel">
+                    <i class="fas fa-times mr-2"></i> Annuler
+                </a>
+                <button type="submit" class="btn-submit">
+                    <i class="fas fa-save mr-2"></i> Enregistrer le patient
+                </button>
             </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Poids (kg)</label>
-                        <input type="number" step="0.01" name="weight" class="form-control">
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Taille (cm)</label>
-                        <input type="number" step="0.01" name="height" class="form-control">
-                    </div>
-                    <div class="col-md-12 mb-3">
-                        <label class="form-label">Allergies</label>
-                        <textarea name="allergies" class="form-control" rows="2" placeholder="Liste des allergies..."></textarea>
-                    </div>
-                    <div class="col-md-12 mb-3">
-                        <label class="form-label">Antécédents médicaux</label>
-                        <textarea name="medical_history" class="form-control" rows="2" placeholder="Antécédents chirurgicaux, maladies chroniques..."></textarea>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- Section Assurance (IMPORTANTE POUR PFE) --}}
-        <div class="card mb-4">
-            <div class="card-header bg-success text-white">
-                <h5 class="mb-0"><i class="fas fa-shield-alt me-2"></i>Couverture d'assurance</h5>
-            </div>
-            <div class="card-body">
-                
-                {{-- CNAM Section --}}
-                <div class="mb-4 p-3 border rounded">
-                    <div class="form-check form-switch mb-3">
-                        <input class="form-check-input" type="checkbox" id="has_cnam" name="has_cnam" value="1">
-                        <label class="form-check-label fw-bold" for="has_cnam">
-                            <i class="fas fa-building me-1 text-primary"></i> Couverture CNAM (Caisse Nationale d'Assurance Maladie)
-                        </label>
-                    </div>
-                    <div id="cnam_fields" style="display: none;">
-                        <div class="alert alert-info small">
-                            <i class="fas fa-info-circle me-1"></i> Le CNAM prend en charge environ 70% des frais médicaux
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Numéro CNAM <span class="text-muted">(Immatriculation)</span></label>
-                                <input type="text" name="cnam_number" class="form-control" placeholder="Ex: 123456789">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Date d'expiration CNAM</label>
-                                <input type="date" name="cnam_expiry_date" class="form-control">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                {{-- Mutuelle Section --}}
-                <div class="mb-4 p-3 border rounded">
-                    <div class="form-check form-switch mb-3">
-                        <input class="form-check-input" type="checkbox" id="has_mutuelle" name="has_mutuelle" value="1">
-                        <label class="form-check-label fw-bold" for="has_mutuelle">
-                            <i class="fas fa-handshake me-1 text-success"></i> Mutuelle complémentaire
-                        </label>
-                    </div>
-                    <div id="mutuelle_fields" style="display: none;">
-                        <div class="alert alert-success small">
-                            <i class="fas fa-info-circle me-1"></i> La mutuelle complète le remboursement après le CNAM
-                        </div>
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Compagnie mutuelle</label>
-                                <select name="mutuelle_company" class="form-control" id="mutuelle_company">
-                                    <option value="">Sélectionner une mutuelle</option>
-                                    <option value="CNSS">CNSS</option>
-                                    <option value="CNOPS">CNOPS</option>
-                                    <option value="La Preservatrice">La Preservatrice</option>
-                                    <option value="Star Assurances">Star Assurances</option>
-                                    <option value="GAT">GAT</option>
-                                    <option value="Amana">Amana</option>
-                                    <option value="Zitouna Takaful">Zitouna Takaful</option>
-                                    <option value="BIAT Assurances">BIAT Assurances</option>
-                                    <option value="Maghrebia">Maghrebia</option>
-                                    <option value="Autre">Autre</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Numéro d'affiliation</label>
-                                <input type="text" name="mutuelle_number" class="form-control" placeholder="Numéro de contrat">
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Taux de couverture (%)</label>
-                                <input type="number" step="0.01" name="mutuelle_rate" class="form-control" placeholder="Ex: 80">
-                                <small class="text-muted">Pourcentage pris en charge par la mutuelle</small>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Date d'expiration</label>
-                                <input type="date" name="mutuelle_expiry_date" class="form-control">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                {{-- Contact d'urgence --}}
-                <div class="p-3 border rounded">
-                    <h6 class="mb-3"><i class="fas fa-phone-alt me-2"></i>Contact d'urgence</h6>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Nom du contact</label>
-                            <input type="text" name="emergency_contact" class="form-control" placeholder="Personne à contacter en cas d'urgence">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Téléphone urgence</label>
-                            <input type="text" name="emergency_phone" class="form-control" placeholder="Numéro d'urgence">
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="d-flex justify-content-between mb-5">
-            <a href="{{ url('/secretaire/patients') }}" class="btn btn-secondary">Annuler</a>
-            <button type="submit" class="btn btn-primary px-4">Enregistrer le patient</button>
         </div>
     </form>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Toggle CNAM fields
-    const cnamCheckbox = document.getElementById('has_cnam');
-    const cnamFields = document.getElementById('cnam_fields');
-    
-    cnamCheckbox.addEventListener('change', function() {
-        cnamFields.style.display = this.checked ? 'block' : 'none';
-    });
-    
-    // Toggle Mutuelle fields
-    const mutuelleCheckbox = document.getElementById('has_mutuelle');
-    const mutuelleFields = document.getElementById('mutuelle_fields');
-    
-    mutuelleCheckbox.addEventListener('change', function() {
-        mutuelleFields.style.display = this.checked ? 'block' : 'none';
-    });
-});
-</script>
 @endsection

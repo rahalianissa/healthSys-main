@@ -7,85 +7,66 @@
 
     <title>{{ config('app.name', 'HealthSys') }}</title>
 
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Premium Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Tailwind Engine -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        indigo: {
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        },
+                        emerald: {
+                            400: '#34d399',
+                            500: '#10b981',
+                        }
+                    },
+                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
     
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #1a5f7a 0%, #0d3b4f 100%);
-            min-height: 100vh;
-        }
-        .card {
-            border-radius: 20px;
-            border: none;
-            box-shadow: 0 20px 35px rgba(0,0,0,0.1);
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #1a5f7a 0%, #0d3b4f 100%);
-            border: none;
-            padding: 12px;
-            border-radius: 10px;
-            font-weight: 600;
-        }
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(132, 157, 167, 0.4);
-        }
-        .form-control {
-            border-radius: 10px;
-            padding: 12px;
-            border: 1px solid #f53737;
-        }
-        .form-control:focus {
-            border-color: #1a5f7a;
-            box-shadow: 0 0 0 0.2rem rgba(26,95,122,0.25);
-        }
-        .input-group-text {
-            background-color: #afbbc7;
-            border-radius: 10px 0 0 10px;
-        }
-        a {
-            color: #1a5f7a;
-            text-decoration: none;
-        }
-        a:hover {
-            color: #0d3b4f;
-        }
+        .auth-glow { background: radial-gradient(circle at 50% -20%, rgba(79, 70, 229, 0.15) 0%, transparent 50%), radial-gradient(circle at 50% 120%, rgba(16, 185, 129, 0.1) 0%, transparent 50%); }
+        .glass-card { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.5); shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.05); }
+        .btn-gradient { background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%); transition: all 0.3s ease; }
+        .btn-gradient:hover { transform: scale(1.02); box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.4); }
+        input:focus { border-color: #4f46e5 !important; ring-color: rgba(79, 70, 229, 0.2) !important; }
     </style>
 </head>
-<body>
-    <div class="min-vh-100 d-flex align-items-center justify-content-center py-5">
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-md-6 col-lg-5">
-                    <div class="text-center mb-4">
-                        <i class="fas fa-hospital-user fa-3x text-white"></i>
-                        <h2 class="text-white mt-2">HealthSys</h2>
-                        <p class="text-white-50">Système de gestion de cabinet médical</p>
-                    </div>
-                    
-                    <div class="card">
-                        <div class="card-body p-4 p-md-5">
-                            {{ $slot }}
-                        </div>
-                    </div>
-                    
-                    <div class="text-center text-white-50 mt-4 small">
-                        &copy; {{ date('Y') }} HealthSys - Tous droits réservés
-                    </div>
+<body class="font-sans text-slate-900 bg-[#f8fafc] auth-glow antialiased">
+    <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0">
+        <div class="mb-10" data-aos="fade-down">
+            <a href="/" class="flex items-center gap-3 group">
+                <div class="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform duration-500">
+                    <i class="fa-solid fa-house-pulse text-white text-2xl"></i>
                 </div>
-            </div>
+                <div class="flex flex-col">
+                    <span class="text-3xl font-extrabold tracking-tighter text-indigo-900 leading-none">Health<span class="text-emerald-500">Sys</span></span>
+                    <span class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mt-1">Medical Ecosystem</span>
+                </div>
+            </a>
+        </div>
+
+        <div class="w-full sm:max-w-md mt-6 px-10 py-12 glass-card rounded-[3rem] shadow-2xl relative z-10 mx-4">
+            {{ $slot }}
+        </div>
+        
+        <div class="mt-12 text-center">
+            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em]">&copy; {{ date('Y') }} HealthSys Global • Tous droits réservés</p>
         </div>
     </div>
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -1,415 +1,566 @@
 @extends('layouts.app')
 
-@section('title', 'Espace secrétaire')
-@section('page-title', 'à votre espace secrétaire')
+@section('page_title', 'Tableau de bord - Secrétariat')
+@section('page_subtitle', 'Gestion quotidienne du cabinet médical')
 
-@section('styles')
+@section('content')
+
 <style>
+    :root {
+        --primary-blue: #023E8A;
+        --primary-dark: #03045E;
+        --primary-light: #0077B6;
+        --primary-lighter: #00B4D8;
+        --primary-soft: #48CAE4;
+        --primary-bg: #CAF0F8;
+        --success: #10B981;
+        --warning: #F59E0B;
+        --danger: #EF4444;
+        --info: #3B82F6;
+    }
+
+    .welcome-banner {
+        background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-blue) 50%, var(--primary-light) 100%);
+        border-radius: 28px;
+        padding: 35px;
+        margin-bottom: 32px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .welcome-banner::before {
+        content: '';
+        position: absolute;
+        top: -40%;
+        right: -10%;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+    
+    .welcome-banner::after {
+        content: '';
+        position: absolute;
+        bottom: -40%;
+        left: -10%;
+        width: 250px;
+        height: 250px;
+        background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+    
     .stat-card {
+        background: white;
+        border-radius: 24px;
+        padding: 20px;
         transition: all 0.3s ease;
-        border: none;
-        border-radius: 20px;
-        cursor: pointer;
+        border: 1px solid #e2e8f0;
     }
+    
     .stat-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+        transform: translateY(-4px);
+        border-color: var(--primary-lighter);
+        box-shadow: 0 10px 25px -5px rgba(0, 119, 182, 0.1);
     }
+    
     .stat-icon {
-        width: 55px;
-        height: 55px;
-        border-radius: 15px;
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 24px;
+        font-size: 22px;
     }
-    .quick-action-btn {
+    
+    .stat-value {
+        font-size: 32px;
+        font-weight: 800;
+        color: var(--primary-dark);
+        line-height: 1.2;
+    }
+    
+    .stat-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .trend-up {
+        background: #ecfdf5;
+        color: #059669;
+    }
+    
+    .quick-action {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px;
+        border-radius: 16px;
+        background: #f8fafc;
+        text-decoration: none;
         transition: all 0.3s ease;
-        border-radius: 12px;
-        padding: 12px;
+        margin-bottom: 12px;
     }
-    .quick-action-btn:hover {
-        transform: translateX(5px);
+    
+    .quick-action:hover {
+        background: var(--primary-bg);
+        transform: translateX(6px);
     }
-    .appointment-row {
-        transition: all 0.2s ease;
-        cursor: pointer;
-    }
-    .appointment-row:hover {
-        background-color: #f8f9fa;
-        transform: scale(1.01);
-    }
-    .badge-status {
-        padding: 5px 12px;
-        border-radius: 20px;
-        font-weight: 500;
-        font-size: 11px;
-    }
-    .welcome-banner {
-        background: linear-gradient(135deg, #1a5f7a 0%, #0d3b4f 100%);
-        border-radius: 20px;
-        padding: 25px;
+    
+    .quick-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, var(--primary-light), var(--primary-lighter));
+        display: flex;
+        align-items: center;
+        justify-content: center;
         color: white;
-        margin-bottom: 25px;
+        font-size: 18px;
     }
-    .section-title {
-        position: relative;
-        padding-bottom: 12px;
-        margin-bottom: 20px;
+    
+    .appointment-card {
+        background: white;
+        border-radius: 20px;
+        padding: 16px;
+        transition: all 0.3s ease;
+        border: 1px solid #e2e8f0;
     }
-    .section-title::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 50px;
-        height: 3px;
-        background: linear-gradient(90deg, #1a5f7a, #f0b429);
-        border-radius: 3px;
+    
+    .appointment-card:hover {
+        transform: translateY(-3px);
+        border-color: var(--primary-lighter);
+        box-shadow: 0 8px 20px -5px rgba(0, 119, 182, 0.08);
+    }
+    
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 12px;
+        border-radius: 30px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+    
+    .status-confirmed {
+        background: #ecfdf5;
+        color: #059669;
+    }
+    
+    .status-pending {
+        background: #fffbeb;
+        color: #d97706;
+    }
+    
+    .status-cancelled {
+        background: #fef2f2;
+        color: #dc2626;
+    }
+    
+    .status-completed {
+        background: #eef2ff;
+        color: #4f46e5;
+    }
+    
+    .btn-outline-blue {
+        background: transparent;
+        border: 1px solid var(--primary-light);
+        color: var(--primary-light);
+        transition: all 0.2s;
+    }
+    
+    .btn-outline-blue:hover {
+        background: var(--primary-light);
+        color: white;
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .animate-fade-up {
+        animation: fadeInUp 0.5s ease forwards;
+    }
+    
+    .waiting-counter {
+        background: linear-gradient(135deg, #F59E0B, #D97706);
+    }
+    
+    .revenue-counter {
+        background: linear-gradient(135deg, #10B981, #059669);
+    }
+    
+    .patients-counter {
+        background: linear-gradient(135deg, #3B82F6, #2563EB);
     }
 </style>
-@endsection
 
-@section('content')
 <!-- Welcome Banner -->
-<div class="welcome-banner">
-    <div class="d-flex justify-content-between align-items-center">
+<div class="welcome-banner animate-fade-up">
+    <div class="relative z-10 flex justify-between items-center flex-wrap gap-4">
         <div>
-            <h2 class="mb-2 fw-bold">Bonjour, {{ auth()->user()->name }} !</h2>
-            <p class="mb-0 opacity-75">Voici le résumé de votre activité du jour</p>
+            <div class="inline-flex items-center gap-2 bg-white/10 rounded-full px-3 py-1 mb-3">
+                <i class="fas fa-calendar-alt text-cyan-300 text-xs"></i>
+                <span class="text-white/80 text-xs font-semibold tracking-wider">TABLEAU DE BORD</span>
+            </div>
+            <h1 class="text-white text-2xl lg:text-3xl font-bold mb-1">
+                Bonjour, {{ explode(' ', auth()->user()->name)[0] }}
+            </h1>
+            <p class="text-white/60 text-sm">
+                {{ now()->translatedFormat('l d F Y') }} — Gestion quotidienne du cabinet
+            </p>
         </div>
-        <div class="text-end">
-            <i class="fas fa-calendar-alt fa-3x opacity-50"></i>
-            <p class="mb-0 mt-2 small">{{ now()->format('l d F Y') }}</p>
+        <div class="bg-white/10 rounded-2xl px-6 py-3 text-center backdrop-blur-sm">
+            <div class="text-white text-2xl font-bold">{{ $stats['today_appointments'] ?? 0 }}</div>
+            <div class="text-white/60 text-xs font-semibold uppercase tracking-wider">Rendez-vous aujourd'hui</div>
         </div>
     </div>
 </div>
 
-<!-- Stats Cards -->
-<div class="row g-4 mb-4">
-    <!-- Patients -->
-    <div class="col-md-3">
-        <div class="card stat-card shadow-sm">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <p class="text-muted text-uppercase small fw-semibold mb-1">Patients</p>
-                        <h3 class="fw-bold mb-0">{{ \App\Models\Patient::count() }}</h3>
-                        <small class="text-success mt-2 d-block">
-                            <i class="fas fa-arrow-up me-1"></i> +12% ce mois
-                        </small>
-                    </div>
-                    <div class="stat-icon bg-primary bg-opacity-10">
-                        <i class="fas fa-users text-primary"></i>
-                    </div>
-                </div>
+<!-- Statistiques Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+    
+    <div class="stat-card animate-fade-up" style="animation-delay: 0.05s">
+        <div class="flex justify-between items-start mb-3">
+            <div class="stat-icon" style="background: rgba(2, 62, 138, 0.1); color: var(--primary-blue);">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <div class="trend-up text-xs font-bold px-2 py-1 rounded-full">
+                <i class="fas fa-arrow-up mr-1"></i> {{ $stats['appointments_growth'] ?? 0 }}%
             </div>
         </div>
+        <div class="stat-value">{{ $stats['today_appointments'] ?? 0 }}</div>
+        <div class="stat-label mt-1">Rendez-vous aujourd'hui</div>
+        <div class="text-xs text-slate-400 mt-2">{{ $stats['pending_appointments'] ?? 0 }} en attente</div>
     </div>
-
-    <!-- Rendez-vous aujourd'hui -->
-    <div class="col-md-3">
-        <div class="card stat-card shadow-sm">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <p class="text-muted text-uppercase small fw-semibold mb-1">Rendez-vous</p>
-                        <h3 class="fw-bold mb-0">{{ \App\Models\Appointment::whereDate('date_time', today())->count() }}</h3>
-                        <small class="text-info mt-2 d-block">
-                            <i class="fas fa-calendar-check me-1"></i> Aujourd'hui
-                        </small>
-                    </div>
-                    <div class="stat-icon bg-success bg-opacity-10">
-                        <i class="fas fa-calendar-check text-success"></i>
-                    </div>
-                </div>
+    
+    <div class="stat-card animate-fade-up" style="animation-delay: 0.1s">
+        <div class="flex justify-between items-start mb-3">
+            <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--warning);">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="trend-up text-xs font-bold px-2 py-1 rounded-full">
+                <i class="fas fa-users mr-1"></i> Actifs
             </div>
         </div>
+        <div class="stat-value">{{ $stats['waiting_room_count'] ?? 0 }}</div>
+        <div class="stat-label mt-1">Salle d'attente</div>
+        <div class="text-xs text-slate-400 mt-2">Patients en attente</div>
     </div>
+    
+    <div class="stat-card animate-fade-up" style="animation-delay: 0.15s">
+        <div class="flex justify-between items-start mb-3">
+            <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success);">
+                <i class="fas fa-user-plus"></i>
+            </div>
+            <div class="trend-up text-xs font-bold px-2 py-1 rounded-full {{ ($stats['patients_growth'] ?? 0) >= 0 ? 'trend-up' : 'trend-down' }}">
+                <i class="fas fa-arrow-{{ ($stats['patients_growth'] ?? 0) >= 0 ? 'up' : 'down' }} mr-1"></i> {{ abs($stats['patients_growth'] ?? 0) }}%
+            </div>
+        </div>
+        <div class="stat-value">{{ $stats['new_patients_today'] ?? 0 }}</div>
+        <div class="stat-label mt-1">Nouveaux patients</div>
+        <div class="text-xs text-slate-400 mt-2">Aujourd'hui</div>
+    </div>
+    
+    <div class="stat-card animate-fade-up" style="animation-delay: 0.2s">
+        <div class="flex justify-between items-start mb-3">
+            <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--danger);">
+                <i class="fas fa-money-bill-wave"></i>
+            </div>
+            <div class="trend-up text-xs font-bold px-2 py-1 rounded-full">
+                <i class="fas fa-chart-line mr-1"></i> Aujourd'hui
+            </div>
+        </div>
+        <div class="stat-value">{{ number_format($stats['today_revenue'] ?? 0, 0) }} DT</div>
+        <div class="stat-label mt-1">Chiffre d'affaires</div>
+        <div class="text-xs text-slate-400 mt-2">Revenus du jour</div>
+    </div>
+</div>
 
+<!-- Graphique et Actions Rapides -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    
+    <!-- Graphique -->
+    <div class="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-100 animate-fade-up" style="animation-delay: 0.25s">
+        <div class="flex justify-between items-center mb-5">
+            <div>
+                <h3 class="text-lg font-bold text-slate-800">Activité du cabinet</h3>
+                <p class="text-sm text-slate-500">Rendez-vous et factures - 12 derniers mois</p>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="updateChart('rdv')" id="btn-rdv" class="px-4 py-2 text-sm font-semibold rounded-xl bg-primary-blue text-white transition-all">
+                    RDV
+                </button>
+                <button onclick="updateChart('inv')" id="btn-inv" class="px-4 py-2 text-sm font-semibold rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all">
+                    Factures
+                </button>
+            </div>
+        </div>
+        <div style="height: 280px;">
+            <canvas id="mainChart"></canvas>
+        </div>
+    </div>
+    
+    <!-- Actions Rapides -->
+    <div class="bg-white rounded-2xl p-5 border border-slate-100 animate-fade-up" style="animation-delay: 0.3s">
+        <h3 class="text-lg font-bold text-slate-800 mb-4">Actions rapides</h3>
+        
+        <a href="{{ route('secretaire.appointments.create') }}" class="quick-action">
+            <div class="quick-icon">
+                <i class="fas fa-calendar-plus"></i>
+            </div>
+            <div>
+                <div class="font-bold text-slate-800">Prendre rendez-vous</div>
+                <div class="text-xs text-slate-500">Nouvelle consultation</div>
+            </div>
+            <i class="fas fa-chevron-right ml-auto text-slate-400"></i>
+        </a>
+        
+        <a href="{{ route('secretaire.patients.create') }}" class="quick-action">
+            <div class="quick-icon" style="background: linear-gradient(135deg, #10B981, #059669);">
+                <i class="fas fa-user-plus"></i>
+            </div>
+            <div>
+                <div class="font-bold text-slate-800">Ajouter un patient</div>
+                <div class="text-xs text-slate-500">Nouveau dossier</div>
+            </div>
+            <i class="fas fa-chevron-right ml-auto text-slate-400"></i>
+        </a>
+        
+        <a href="{{ route('secretaire.waiting-room') }}" class="quick-action">
+            <div class="quick-icon" style="background: linear-gradient(135deg, #F59E0B, #D97706);">
+                <i class="fas fa-door-open"></i>
+            </div>
+            <div>
+                <div class="font-bold text-slate-800">Salle d'attente</div>
+                <div class="text-xs text-slate-500">Gérer les arrivées</div>
+            </div>
+            <i class="fas fa-chevron-right ml-auto text-slate-400"></i>
+        </a>
+        
+        <a href="{{ route('secretaire.comptabilite') }}" class="quick-action">
+            <div class="quick-icon" style="background: linear-gradient(135deg, #3B82F6, #2563EB);">
+                <i class="fas fa-file-invoice-dollar"></i>
+            </div>
+            <div>
+                <div class="font-bold text-slate-800">Facturation</div>
+                <div class="text-xs text-slate-500">Gérer les paiements</div>
+            </div>
+            <i class="fas fa-chevron-right ml-auto text-slate-400"></i>
+        </a>
+    </div>
+</div>
+
+<!-- Rendez-vous du Jour et Salle d'attente -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    
+    <!-- Rendez-vous du jour -->
+    <div class="bg-white rounded-2xl border border-slate-100 overflow-hidden animate-fade-up" style="animation-delay: 0.35s">
+        <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
+            <div>
+                <h3 class="font-bold text-slate-800">
+                    <i class="fas fa-calendar-day text-primary-blue mr-2"></i>
+                    Rendez-vous du jour
+                </h3>
+                <p class="text-xs text-slate-400 mt-1">Liste des consultations programmées</p>
+            </div>
+            <a href="{{ route('secretaire.appointments.index') }}" class="text-xs font-semibold text-primary-blue hover:underline">
+                Voir tous <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+        </div>
+        <div class="divide-y divide-slate-100">
+            @forelse($todayAppointments ?? [] as $apt)
+            <div class="p-4 hover:bg-slate-50 transition-colors">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-primary-bg flex items-center justify-center text-primary-blue font-bold">
+                            {{ substr($apt->patient->user->name ?? 'P', 0, 1) }}
+                        </div>
+                        <div>
+                            <div class="font-semibold text-slate-800">{{ $apt->patient->user->name ?? 'N/A' }}</div>
+                            <div class="text-xs text-slate-500">Dr. {{ $apt->doctor->user->name ?? 'N/A' }}</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-medium text-primary-blue">{{ \Carbon\Carbon::parse($apt->date_time)->format('H:i') }}</div>
+                        <div class="text-xs text-slate-400">{{ \Carbon\Carbon::parse($apt->date_time)->format('d/m') }}</div>
+                    </div>
+                </div>
+                @if($apt->reason)
+                <div class="mt-2 text-xs text-slate-500 bg-slate-50 p-2 rounded-lg">
+                    <i class="fas fa-sticky-note mr-1"></i> {{ Str::limit($apt->reason, 60) }}
+                </div>
+                @endif
+            </div>
+            @empty
+            <div class="p-8 text-center">
+                <i class="fas fa-calendar-alt text-3xl text-slate-300 mb-2"></i>
+                <p class="text-slate-500">Aucun rendez-vous pour aujourd'hui</p>
+            </div>
+            @endforelse
+        </div>
+    </div>
+    
     <!-- Salle d'attente -->
-    <div class="col-md-3">
-        <div class="card stat-card shadow-sm">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <p class="text-muted text-uppercase small fw-semibold mb-1">Salle d'attente</p>
-                        <h3 class="fw-bold mb-0">{{ \App\Models\WaitingRoom::where('status', 'waiting')->count() }}</h3>
-                        <small class="text-warning mt-2 d-block">
-                            <i class="fas fa-clock me-1"></i> En attente
-                        </small>
-                    </div>
-                    <div class="stat-icon bg-warning bg-opacity-10">
-                        <i class="fas fa-clock text-warning"></i>
-                    </div>
-                </div>
+    <div class="bg-white rounded-2xl border border-slate-100 overflow-hidden animate-fade-up" style="animation-delay: 0.4s">
+        <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
+            <div>
+                <h3 class="font-bold text-slate-800">
+                    <i class="fas fa-clock text-warning mr-2"></i>
+                    Salle d'attente
+                </h3>
+                <p class="text-xs text-slate-400 mt-1">Patients en attente de consultation</p>
             </div>
+            <a href="{{ route('secretaire.waiting-room') }}" class="text-xs font-semibold text-primary-blue hover:underline">
+                Gérer <i class="fas fa-arrow-right ml-1"></i>
+            </a>
         </div>
-    </div>
-
-    <!-- Revenus -->
-    <div class="col-md-3">
-        <div class="card stat-card shadow-sm">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <p class="text-muted text-uppercase small fw-semibold mb-1">Revenus du mois</p>
-                        <h3 class="fw-bold mb-0">{{ number_format(\App\Models\Invoice::whereMonth('created_at', now()->month)->sum('amount') ?? 0, 0) }} DT</h3>
-                        <small class="text-success mt-2 d-block">
-                            <i class="fas fa-chart-line me-1"></i> +5% vs mois dernier
-                        </small>
+        <div class="divide-y divide-slate-100">
+            @forelse($waitingPatients ?? [] as $waiting)
+            <div class="p-4 hover:bg-slate-50 transition-colors">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 font-bold">
+                            {{ substr($waiting->patient->user->name ?? 'P', 0, 1) }}
+                        </div>
+                        <div>
+                            <div class="font-semibold text-slate-800">{{ $waiting->patient->user->name ?? 'N/A' }}</div>
+                            <div class="flex items-center gap-2 mt-1">
+                                @if($waiting->priority == 2)
+                                    <span class="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">URGENT</span>
+                                @elseif($waiting->priority == 1)
+                                    <span class="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Prioritaire</span>
+                                @endif
+                                <span class="text-xs text-slate-400">Arrivé à {{ \Carbon\Carbon::parse($waiting->arrival_time)->format('H:i') }}</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="stat-icon bg-info bg-opacity-10">
-                        <i class="fas fa-chart-line text-info"></i>
+                    <div class="text-right">
+                        <div class="text-xs text-slate-400">{{ $waiting->arrival_time->diffForHumans() }}</div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- Main Content -->
-
-    <!-- Today's Appointments -->
-    <div class="col-lg-8">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white border-0 pt-4">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 section-title">
-                        <i class="fas fa-calendar-day me-2 text-primary"></i>Rendez-vous du jour
-                    </h5>
-                    <span class="badge bg-primary">{{ \App\Models\Appointment::whereDate('date_time', today())->count() }} RDV</span>
-                </div>
+            @empty
+            <div class="p-8 text-center">
+                <i class="fas fa-clock text-3xl text-slate-300 mb-2"></i>
+                <p class="text-slate-500">Salle d'attente vide</p>
             </div>
-            <div class="card-body pt-0">
-                @php
-                    $todayAppointments = \App\Models\Appointment::with(['patient.user', 'doctor.user'])
-                        ->whereDate('date_time', today())
-                        ->orderBy('date_time')
-                        ->get();
-                @endphp
-                
-                @if($todayAppointments->count() > 0)
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Heure</th>
-                                    <th>Patient</th>
-                                    <th>Médecin</th>
-                                    <th>Statut</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($todayAppointments as $appointment)
-                                <tr class="appointment-row">
-                                    <td>
-                                        <span class="fw-bold text-primary">{{ $appointment->date_time->format('H:i') }}</span>
-                                    </td>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="bg-light rounded-circle p-2 me-2" style="width: 35px; height: 35px;">
-                                                <i class="fas fa-user text-primary"></i>
-                                            </div>
-                                            <div>
-                                                <strong>{{ $appointment->patient->user->name }}</strong><br>
-                                                <small class="text-muted">{{ $appointment->patient->user->phone }}</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="bg-light rounded-circle p-2 me-2" style="width: 35px; height: 35px;">
-                                                <i class="fas fa-user-md text-success"></i>
-                                            </div>
-                                            <div>
-                                                <strong>Dr. {{ $appointment->doctor->user->name }}</strong><br>
-                                                <small class="text-muted">{{ $appointment->doctor->specialty }}</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        @if($appointment->status == 'confirmed')
-                                            <span class="badge-status bg-success text-white">Confirmé</span>
-                                        @elseif($appointment->status == 'cancelled')
-                                            <span class="badge-status bg-danger text-white">Annulé</span>
-                                        @elseif($appointment->status == 'completed')
-                                            <span class="badge-status bg-secondary text-white">Terminé</span>
-                                        @else
-                                            <span class="badge-status bg-warning text-dark">En attente</span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm">
-                                            <a href="{{ route('secretaire.appointments.edit', $appointment) }}" class="btn btn-outline-warning" title="Modifier">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <button onclick="showAppointmentDetails({{ $appointment->id }})" class="btn btn-outline-info" title="Détails">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                @else
-                    <div class="text-center py-5">
-                        <i class="fas fa-calendar-check fa-4x text-muted mb-3 opacity-25"></i>
-                        <p class="text-muted mb-0">Aucun rendez-vous prévu aujourd'hui</p>
-                        <a href="{{ route('secretaire.appointments.create') }}" class="btn btn-primary mt-3">
-                            <i class="fas fa-plus me-2"></i>Créer un rendez-vous
-                        </a>
-                    </div>
-                @endif
-            </div>
+            @endforelse
         </div>
     </div>
 </div>
 
-<!-- Recent Patients -->
-<div class="row g-4 mt-2">
-    <div class="col-12">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white border-0 pt-4">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 section-title">
-                        <i class="fas fa-user-plus me-2 text-success"></i>Derniers patients ajoutés
-                    </h5>
-                    <a href="{{ route('secretaire.patients.index') }}" class="text-decoration-none">
-                        Voir tout <i class="fas fa-arrow-right ms-1"></i>
-                    </a>
-                </div>
-            </div>
-            <div class="card-body pt-0">
-                @php
-                    $recentPatients = \App\Models\Patient::with('user')
-                        ->orderBy('created_at', 'desc')
-                        ->limit(5)
-                        ->get();
-                @endphp
-                
-                @if($recentPatients->isNotEmpty())
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Patient</th>
-                                    <th>Contact</th>
-                                    <th>Date d'inscription</th>
-                                    <th>Mutuelle</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($recentPatients as $patient)
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="bg-success bg-opacity-10 rounded-circle p-2 me-2" style="width: 35px; height: 35px;">
-                                                <i class="fas fa-user text-success"></i>
-                                            </div>
-                                            <div>
-                                                <strong>{{ $patient->user->name ?? 'Patient' }}</strong><br>
-                                                <small class="text-muted">ID: {{ $patient->id }}</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <i class="fas fa-envelope text-muted me-1"></i> {{ $patient->user->email ?? 'Non renseigné' }}<br>
-                                        <i class="fas fa-phone text-muted me-1"></i> {{ $patient->user->phone ?? 'Non renseigné' }}
-                                    </td>
-                                    <td>
-                                        <i class="fas fa-calendar text-muted me-1"></i> {{ $patient->created_at->format('d/m/Y') }}<br>
-                                        <small class="text-muted">{{ $patient->created_at->diffForHumans() }}</small>
-                                    </td>
-                                    <td>
-                                        @if($patient->insurance_number)
-                                            <span class="badge bg-info text-white">{{ $patient->insurance_company ?? 'Mutuelle' }}</span>
-                                        @else
-                                            <span class="badge bg-secondary">Aucune</span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm">
-                                            <a href="{{ route('secretaire.patients.show', $patient) }}" class="btn btn-outline-info" title="Voir">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            <a href="{{ route('secretaire.patients.edit', $patient) }}" class="btn btn-outline-warning" title="Modifier">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                @else
-                    <div class="text-center py-5">
-                        <i class="fas fa-user-plus fa-4x text-muted mb-3 opacity-25"></i>
-                        <p class="text-muted mb-0">Aucun patient enregistré</p>
-                        <a href="{{ route('secretaire.patients.create') }}" class="btn btn-success mt-3">
-                            <i class="fas fa-plus me-2"></i>Ajouter un patient
-                        </a>
-                    </div>
-                @endif
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Détails Rendez-vous -->
-<div class="modal fade" id="appointmentModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title">Détails du rendez-vous</h5>
-                <button type="button" class="btn-close text-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="appointmentDetails">
-                <div class="text-center">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Chargement...</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-@endsection
-
-@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-function showAppointmentDetails(id) {
-    fetch(`/secretaire/appointments/${id}`)
-        .then(response => response.json())
-        .then(data => {
-            let html = `
-                <div class="mb-3">
-                    <strong>Patient:</strong> ${data.patient.user.name}<br>
-                    <strong>Téléphone:</strong> ${data.patient.user.phone || 'Non renseigné'}<br>
-                    <strong>Email:</strong> ${data.patient.user.email || 'Non renseigné'}
-                </div>
-                <div class="mb-3">
-                    <strong>Médecin:</strong> Dr. ${data.doctor.user.name}<br>
-                    <strong>Spécialité:</strong> ${data.doctor.specialty}<br>
-                    <strong>Honoraire:</strong> ${data.doctor.consultation_fee} DT
-                </div>
-                <div class="mb-3">
-                    <strong>Date et heure:</strong> ${new Date(data.date_time).toLocaleString()}<br>
-                    <strong>Type:</strong> ${data.type || 'Général'}<br>
-                    <strong>Statut:</strong> <span class="badge bg-${data.status == 'confirmed' ? 'success' : 'warning'}">${data.status}</span>
-                </div>
-                ${data.reason ? `<div class="mb-3"><strong>Motif:</strong><br>${data.reason}</div>` : ''}
-                ${data.notes ? `<div class="mb-3"><strong>Notes:</strong><br>${data.notes}</div>` : ''}
-            `;
-            document.getElementById('appointmentDetails').innerHTML = html;
-            new bootstrap.Modal(document.getElementById('appointmentModal')).show();
-        });
-}
+    // Données du graphique - Version corrigée
+    const labels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+    
+    // Récupération des données PHP
+    let appointmentsRaw = {!! json_encode($monthlyAppointments ?? []) !!};
+    let invoicesRaw = {!! json_encode($monthlyInvoices ?? []) !!};
+    
+    // Vérification et correction des tableaux
+    let appointmentsData = [];
+    let invoicesData = [];
+    
+    if (Array.isArray(appointmentsRaw) && appointmentsRaw.length === 12) {
+        appointmentsData = appointmentsRaw;
+    } else {
+        appointmentsData = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    }
+    
+    if (Array.isArray(invoicesRaw) && invoicesRaw.length === 12) {
+        invoicesData = invoicesRaw;
+    } else {
+        invoicesData = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    }
+    
+    // Création du graphique
+    const ctx = document.getElementById('mainChart').getContext('2d');
+    let mainChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Rendez-vous',
+                data: appointmentsData,
+                borderColor: '#023E8A',
+                backgroundColor: 'rgba(2, 62, 138, 0.05)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: '#0077B6',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1e293b',
+                    padding: 12,
+                    titleFont: { size: 13, weight: 'bold' },
+                    bodyFont: { size: 12 },
+                    cornerRadius: 8
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: '#e2e8f0', drawBorder: false },
+                    ticks: { color: '#64748b', font: { size: 11, weight: '600' } }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: '#64748b', font: { size: 11, weight: '600' } }
+                }
+            }
+        }
+    });
+    
+    function updateChart(type) {
+        const isInvoice = (type === 'inv');
+        mainChart.data.datasets[0].label = isInvoice ? 'Factures' : 'Rendez-vous';
+        mainChart.data.datasets[0].data = isInvoice ? invoicesData : appointmentsData;
+        mainChart.data.datasets[0].borderColor = isInvoice ? '#10B981' : '#023E8A';
+        mainChart.data.datasets[0].backgroundColor = isInvoice ? 'rgba(16, 185, 129, 0.05)' : 'rgba(2, 62, 138, 0.05)';
+        mainChart.data.datasets[0].pointBackgroundColor = isInvoice ? '#10B981' : '#0077B6';
+        mainChart.update();
+        
+        const rdvBtn = document.getElementById('btn-rdv');
+        const invBtn = document.getElementById('btn-inv');
+        
+        if (rdvBtn && invBtn) {
+            if (isInvoice) {
+                rdvBtn.classList.remove('bg-primary-blue', 'text-white');
+                rdvBtn.classList.add('bg-slate-100', 'text-slate-600');
+                invBtn.classList.remove('bg-slate-100', 'text-slate-600');
+                invBtn.classList.add('bg-primary-blue', 'text-white');
+            } else {
+                rdvBtn.classList.remove('bg-slate-100', 'text-slate-600');
+                rdvBtn.classList.add('bg-primary-blue', 'text-white');
+                invBtn.classList.remove('bg-primary-blue', 'text-white');
+                invBtn.classList.add('bg-slate-100', 'text-slate-600');
+            }
+        }
+    }
 </script>
-@endpush
+
+@endsection
